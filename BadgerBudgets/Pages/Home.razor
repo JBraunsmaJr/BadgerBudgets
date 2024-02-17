@@ -1,0 +1,127 @@
+﻿@page "/"
+@using Blazorise.Charts
+@using BadgerBudgets.Services
+@inject StatementService StatementService
+
+<PageTitle>Dashboard</PageTitle>
+
+<SnackbarStack @ref="_snackbarStack"
+               Location="SnackbarStackLocation.Top"
+               DelayCloseOnClick/>
+
+<Row>
+    <Column>
+        <FilePicker Multiple
+                    Upload="OnFileUpload"
+                    ShowMode="FilePickerShowMode.Dropdown"/>
+    </Column>
+</Row>
+
+<Row>
+    <Column ColumnSize="ColumnSize.IsThird.OnWidescreen">
+        <Card Margin="Margin.Is4.OnY">
+            <CardHeader>
+                <CardTitle>Spending by Category</CardTitle>
+                <CardBody>
+                    <Chart @ref="categoryChart"
+                           Type="ChartType.Pie"
+                           TItem="double"
+                           Options="@categoryOptions"/>
+                </CardBody>
+            </CardHeader>
+        </Card>
+    </Column>
+    <Column ColumnSize="ColumnSize.IsFull">
+        <Table Striped Hoverable Responsive Overflow="Overflow.Scroll" Height="Height.Is33">
+            <TableHeader>
+                <TableHeaderCell>Transaction Date</TableHeaderCell>
+                <TableHeaderCell>Amount</TableHeaderCell>
+                <TableHeaderCell>Description</TableHeaderCell>
+                <TableHeaderCell>Category</TableHeaderCell>
+            </TableHeader>
+            <TableBody>
+                @{
+                    var totalIncoming = 0d;
+                    var totalOutgoing = 0d;
+
+                    foreach (var item in StatementService.Items)
+                    {
+                        var color = item.IsDebit ? TextColor.Default : TextColor.Success;
+                        if (item.IsDebit)
+                            totalOutgoing += item.Amount;
+                        else
+                            totalIncoming += item.Amount;
+
+                        <TableRow>
+                            <TableRowCell>@item.Date.ToString()</TableRowCell>
+                            <TableRowCell TextColor="color">@item.Amount.ToString("C")</TableRowCell>
+                            <TableRowCell>@item.LineItem</TableRowCell>
+                            <TableRowCell>@item.Category</TableRowCell>
+                        </TableRow>
+                    }
+
+                    <TableRow>
+                        <TableRowCell>Incoming</TableRowCell>
+                        <TableRowCell>@totalIncoming.ToString("C")</TableRowCell>
+                        <TableRowCell>Outgoing</TableRowCell>
+                        <TableRowCell TextColor="TextColor.Danger">@totalOutgoing.ToString("C")</TableRowCell>
+                    </TableRow>
+                }
+            </TableBody>
+        </Table>
+    </Column>
+</Row>
+
+@code {
+    private readonly HashSet<string> _acceptableExtensions = new() { ".csv", ".txt" };
+    private SnackbarStack _snackbarStack;
+    private Chart<double> categoryChart;
+
+    ChartOptions categoryOptions = new()
+    {
+        AspectRatio = 1.5
+    };
+    
+    async Task OnFileUpload(FileUploadEventArgs e)
+    {
+        try
+        {
+            var info = new FileInfo(e.File.Name);
+
+            if (!_acceptableExtensions.Contains(info.Extension))
+                return;
+
+            using MemoryStream memStream = new();
+            await e.File.WriteToStreamAsync(memStream);
+            using TextReader reader = new StreamReader(memStream);
+            memStream.Position = 0;
+
+            var contents = await reader.ReadToEndAsync();
+
+            var lines = contents.Split('\n');
+
+            StatementService.ParseFile(lines);
+            await _snackbarStack.PushAsync($"Import Successful. {StatementService.Items.Count} Total Records",
+                SnackbarColor.Success);
+            InitializeCategoryDataSet();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex);
+        }
+    }
+
+    private void InitializeCategoryDataSet()
+    {
+        var data = StatementService.GetAmountsByCategory();
+        var labels = data.Keys.ToArray();
+        var datasets = data.Select(x => new PieChartDataset<double>()
+        {
+            Label = x.Key,
+            Data = x.Value
+        }).ToArray();
+        
+        categoryChart.AddLabelsDatasetsAndUpdate(labels, datasets.ToArray());
+    }
+}
