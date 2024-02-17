@@ -1,16 +1,13 @@
 ﻿@inherits LayoutComponentBase
+<MudThemeProvider IsDarkMode="true"/>
+<MudDialogProvider/>
+<MudSnackbarProvider/>
 
-<Layout>
-    <Layout Sider>
-        <LayoutSider>
-            <LayoutSiderContent>
-                <SideMenu/>
-            </LayoutSiderContent>
-        </LayoutSider>
-        <Layout>
-            <LayoutContent Padding="Padding.Is4.OnX">
-                @Body
-            </LayoutContent>
-        </Layout>
-    </Layout>
-</Layout>
+<MudLayout>
+    <MudDrawer Open="true">
+        <SideMenu/>        
+    </MudDrawer>
+    <MudMainContent Style="">
+        @Body
+    </MudMainContent>
+</MudLayout>

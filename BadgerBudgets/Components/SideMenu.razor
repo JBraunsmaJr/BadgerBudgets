@@ -1,28 +1,10 @@
-﻿<Bar Breakpoint="Breakpoint.Desktop" NavigationBreakpoint="Breakpoint.Tablet" ThemeContrast="ThemeContrast.Dark"
-     Mode="BarMode.VerticalInline" CollapseMode="BarCollapseMode.Small">
-    <BarToggler/>
-    <BarBrand>
-        <BarItem>
-            <BarLink To="/">
-                <BarIcon IconName="MaterialIcons.Notes"/>
-                Badger Budgets
-            </BarLink>
-        </BarItem>
-    </BarBrand>
-    <BarMenu>
-        <BarStart>
-            <BarItem>
-                <BarLink To="/">
-                    <BarIcon IconName="MaterialIcons.Dashboard"/>
-                    Dashboard
-                </BarLink>
-            </BarItem>
-            <BarItem>
-                <BarLink To="/settings">
-                    <BarIcon IconName="MaterialIcons.Settings"/>
-                    Settings
-                </BarLink>
-            </BarItem>
-        </BarStart>
-    </BarMenu>
-</Bar>
+﻿<MudContainer Style="margin-top: 4px; margin-bottom: 4px;">
+    <MudText Align="Align.Center" Typo="Typo.h6">
+        Badger Budgets
+    </MudText>
+    <MudDivider/>
+</MudContainer>
+<MudNavMenu>
+    <MudNavLink Icon="@Icons.Material.Filled.Dashboard" Href="/" Match="NavLinkMatch.All">Dashboard</MudNavLink>
+    <MudNavLink Icon="@Icons.Material.Filled.Settings" Href="/settings" Match="NavLinkMatch.All">Settings</MudNavLink>
+</MudNavMenu>

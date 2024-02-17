@@ -1,51 +1,93 @@
-﻿using BadgerBudgets.Models;
-using Blazorise.Extensions;
+﻿using BadgerBudgets.Extensions;
+using BadgerBudgets.Models;
+using Blazored.LocalStorage;
+using Newtonsoft.Json;
 
 namespace BadgerBudgets.Services;
 
 public class StatementService
 {
     public static List<StatementItem> Items { get; set; } = new();
-    private static Dictionary<ColumnType, int> ColumnMappings = new();
+    private static Dictionary<ColumnType, int> _columnMappings = new();
     public static bool HasContent => Items.Count != 0;
-    public static bool HasMappings => ColumnMappings.Count > 0;
+    public static bool HasMappings => _columnMappings.Count > 0;
+    private const string MappingsKey = "ColumnMappings";
 
-    public void SetMappings(Dictionary<ColumnType, int> mappings)
+    private readonly ILocalStorageService _storage;
+    private readonly ILogger<StatementService> _logger;
+
+    public StatementService(ILocalStorageService storage, ILogger<StatementService> logger)
     {
-        ColumnMappings = mappings;
+        _storage = storage;
+        _logger = logger;
+        Task.Run(LoadFromStorage);
     }
 
-    public void RemoveMapping(ColumnType type)
+    async Task LoadFromStorage()
     {
-        if (ColumnMappings.ContainsKey(type))
-            ColumnMappings.Remove(type);
+        if (!await _storage.ContainKeyAsync(MappingsKey))
+            return;
+
+        try
+        {
+            var json = await _storage.GetItemAsStringAsync(MappingsKey);
+            
+            if(!string.IsNullOrWhiteSpace(json))
+                _columnMappings = JsonConvert.DeserializeObject<Dictionary<ColumnType, int>>(json)!;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Failed to load from storage: {Message}", ex);
+        }
     }
 
-    public void RemoveMapping(int index)
+    public async Task SetMappings(Dictionary<ColumnType, int> mappings)
     {
-        if (!ColumnMappings.ContainsValue(index)) return;
-        
-        var valueIndex = ColumnMappings.Values.Index(x => x == index);
-        var keyIndex = ColumnMappings.Keys.ToArray()[valueIndex];
-        ColumnMappings.Remove(keyIndex);
+        _columnMappings = mappings;
+        await SaveToLocal();
     }
-    
-    public void UpdateMapping(ColumnType type, int columnIndex)
+
+    public async Task RemoveMapping(ColumnType type)
     {
-        ColumnMappings[type] = columnIndex;
+        if (!_columnMappings.ContainsKey(type))
+            return;
+        _columnMappings.Remove(type);
+        await Task.Run(SaveToLocal);
+    }
+
+    public async Task RemoveMapping(int index)
+    {
+        if (!_columnMappings.ContainsValue(index)) return;
+
+        var valueIndex = _columnMappings.Values.Index(x => x == index);
+        var keyIndex = _columnMappings.Keys.ToArray()[valueIndex];
+        _columnMappings.Remove(keyIndex);
+        await Task.Run(SaveToLocal);
+    }
+
+    public async Task UpdateMapping(ColumnType type, int columnIndex)
+    {
+        _columnMappings[type] = columnIndex;
+        await Task.Run(SaveToLocal);
+    }
+
+    async Task SaveToLocal()
+    {
+        await _storage.SetItemAsStringAsync(MappingsKey, JsonConvert.SerializeObject(_columnMappings));
     }
 
     public string SerializeMappings()
     {
-        return Newtonsoft.Json.JsonConvert.SerializeObject(ColumnMappings);
+        return JsonConvert.SerializeObject(_columnMappings);
     }
 
-    public Dictionary<string, List<double>> GetAmountsByCategory(bool ignoreCredit=true)
+    public Dictionary<string, List<double>> GetAmountsByCategory(bool ignoreCredit = true)
     {
         return Items.GroupBy(x => x.Category)
+            .Where(x => !StatementItem.CreditCategories.Contains(x.Key))
             .ToDictionary(x => x.Key, x => x.Select(y => y.Amount).ToList());
     }
-    
+
     public void ParseFile(string[] lines, char delimiter = ',')
     {
         foreach (var line in lines)
@@ -53,21 +95,21 @@ public class StatementService
             var parts = line.Split(delimiter);
             if (parts.Length < 5)
                 continue;
-            
-            DateOnly.TryParse(parts[ColumnMappings[ColumnType.TransactionDate]], out var transactionDate);
-            double.TryParse(parts[ColumnMappings[ColumnType.Amount]], out var amount);
-            var description = parts[ColumnMappings[ColumnType.LineItem]];
-            var category = parts[ColumnMappings[ColumnType.Category]];
+
+            DateOnly.TryParse(parts[_columnMappings[ColumnType.TransactionDate]], out var transactionDate);
+            double.TryParse(parts[_columnMappings[ColumnType.Amount]], out var amount);
+            var description = parts[_columnMappings[ColumnType.LineItem]];
+            var category = parts[_columnMappings[ColumnType.Category]];
 
             var isDebit = true;
-            if (ColumnMappings.ContainsKey(ColumnType.Debit))
+            if (_columnMappings.TryGetValue(ColumnType.Debit, out var mapping))
             {
-                isDebit = parts[ColumnMappings[ColumnType.Debit]]
+                isDebit = parts[mapping]
                     .Contains("debit", StringComparison.InvariantCultureIgnoreCase);
             }
-            else if (ColumnMappings.ContainsKey(ColumnType.CreditDebitCombined))
+            else if (_columnMappings.TryGetValue(ColumnType.CreditDebitCombined, out var columnMapping))
             {
-                isDebit = parts[ColumnMappings[ColumnType.CreditDebitCombined]]
+                isDebit = parts[columnMapping]
                     .Contains("debit", StringComparison.InvariantCultureIgnoreCase);
             }
 
@@ -76,7 +118,7 @@ public class StatementService
                 string.IsNullOrWhiteSpace(category) ||
                 amount == 0)
                 continue;
-            
+
             Items.Add(new()
             {
                 Amount = amount,

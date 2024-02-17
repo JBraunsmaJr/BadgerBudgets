@@ -1,112 +1,93 @@
 ﻿@page "/settings"
 @using BadgerBudgets.Services
-@using BadgerBudgets.Models
-@using Blazorise.Extensions
+@using BadgerBudgets.Extensions
 @inject StatementService StatementService
 @inject IJSRuntime RuntimeService
 
-<PageTitle>Dashboard</PageTitle>
+<PageTitle>Settings</PageTitle>
 
-<Heading Size="HeadingSize.Is3" Margin="Margin.Is5.OnY">
-    Dashboard
-    
-    <Field>
-        <FilePicker Upload="OnFileUpload"
-                    ShowMode="FilePickerShowMode.List"/>
-    </Field>
-    
-    <Field>
-        <Button Color="Color.Success" Disabled="!StatementService.HasMappings" @onclick="DownloadConfiguration">
-            <Blazorize.Material.Icon Class="@MaterialIcons.Download"/>
-            Download Mappings
-        </Button>
-    </Field>
-</Heading>
+<MudContainer>
+    <MudGrid>
+        <MudItem>
+            <MudFileUpload Accept=".csv,.json" T="IBrowserFile" FilesChanged="OnFileUpload">
+                <ButtonTemplate>
+                    <MudButton HtmlTag="label"
+                               Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.CloudUpload"
+                               for="@context.Id">
+                        Upload Statement
+                    </MudButton>
+                </ButtonTemplate>
+            </MudFileUpload>        
+        </MudItem>
+        <MudItem>
+            <MudButton Disabled="!StatementService.HasMappings" 
+                       IconClass="@Icons.Material.Filled.Download" 
+                       Variant="Variant.Filled"
+                       Color="Color.Info"
+                       OnClick="@DownloadConfiguration">Download Mappings</MudButton>        
+        </MudItem>
+        
+        <MudItem xs="12">
+            <MudText Typo="Typo.body1">
+                Every institution has different column headers. Upload a statement then map columns! Too easy!
+            </MudText>        
+        </MudItem>
+    </MudGrid>
+</MudContainer>
 
- <Paragraph>
-     We need to sanitize data into a format Badger Budget understands. Can you please map
-     the @_columnTypes.Count "types" of data for us?
- </Paragraph>
- 
 @if (!_hasUploadedMappings)
 {
-    <Row>
-        @foreach (var headerItem in _header)
-        {
-            <Column ColumnSize="ColumnSize.Is3">
-                <Field>
-                    <FieldLabel>@headerItem</FieldLabel>
-                    <Select TValue="ColumnType" @ref="Ref"
-                            ElementId="@headerItem">
-                        <SelectItem Value="ColumnType.None"></SelectItem>
-                        <SelectItem Value="ColumnType.TransactionDate">Transaction Date</SelectItem>
-                        <SelectItem Value="ColumnType.Amount">Amount</SelectItem>
-                        <SelectItem Value="ColumnType.Credit">Credit</SelectItem>
-                        <SelectItem Value="ColumnType.Debit">Debit</SelectItem>
-                        <SelectItem Value="ColumnType.LineItem">Description</SelectItem>
-                        <SelectItem Value="ColumnType.Category">Category</SelectItem>
-                        <SelectItem Value="ColumnType.CreditDebitCombined">Credit & Debit</SelectItem>
-                    </Select>
-                </Field>    
-            </Column>
-        }
-    </Row>
+    <MudGrid Spacing="3" Style="padding: 16px;">
+        
+            @foreach (var headerItem in _header)
+            {
+                <MudItem xs="3">
+                    <MudSelect T="ColumnType" Label="@headerItem" AnchorOrigin="Origin.BottomCenter" @ref="@Ref" >
+                        <MudSelectItem Value="@ColumnType.None"></MudSelectItem>
+                        <MudSelectItem Value="ColumnType.TransactionDate">Transaction Date</MudSelectItem>
+                        <MudSelectItem Value="ColumnType.Amount">Amount</MudSelectItem>
+                        <MudSelectItem Value="ColumnType.Credit">Credit</MudSelectItem>
+                        <MudSelectItem Value="ColumnType.Debit">Debit</MudSelectItem>
+                        <MudSelectItem Value="ColumnType.LineItem">Description</MudSelectItem>
+                        <MudSelectItem Value="ColumnType.Category">Category</MudSelectItem>
+                        <MudSelectItem Value="ColumnType.CreditDebitCombined">Credit & Debit</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+            }
+    </MudGrid>
 }
  
- <Row>
-     <Column ColumnSize="ColumnSize.IsFull.OnDesktop.IsFull.OnWidescreen">
-         <Card Margin="Margin.Is4.OnY" Border="Border.Dark">
-             <CardHeader>
-                 <CardTitle>File Contents</CardTitle>
-             </CardHeader>
-             <CardBody>
-                 <Table Responsive Hoverable Striped>
-                     <TableHeader>
-                         @foreach (var headerItem in _header)
-                         {
-                             <TableHeaderCell>@headerItem</TableHeaderCell>
-                         }
-                     </TableHeader>
-                     <TableBody>
-                         @{
-                             // Skip the header
-                             foreach (var item in _fileContents)
-                             {
-                                 if (item.Trim().Length <= 0)
-                                     continue;
-                                 
-                                 var cols = item.Split(',');
-                                 <TableRow>
-                                     @foreach (var col in cols)
-                                     {
-                                        <TableRowCell>@col</TableRowCell>
-                                     }
-                                </TableRow>    
-                             }   
-                         }
-                     </TableBody>
-                 </Table>
-             </CardBody>
-         </Card>
-     </Column>
- </Row>   
-
-@if (StatementService.HasContent)
-{
-    
-}
-else
-{
-    <Row>
-        <Lead Margin="Margin.Is4.OnY">
-            Please upload statements
-        </Lead>
-    </Row>
-}
+<MudContainer>
+    <MudCard Elevation="2">
+        <MudCardHeader>
+            <MudText Typo="Typo.h6">File Contents</MudText>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudTable Striped Elevation="3" Dense Items="_fileContents">
+                <HeaderContent>
+                    @foreach (var headerItem in _header)
+                    {
+                        <MudTh>@headerItem</MudTh>
+                    }
+                </HeaderContent>
+                <RowTemplate>
+                    @{
+                        foreach (var item in context)
+                        {
+                            <MudTd>@item</MudTd>
+                        }
+                    }
+                </RowTemplate>
+            </MudTable>
+        </MudCardContent>
+    </MudCard>
+</MudContainer>
 
 @code {
     private HashSet<string> _acceptableExtensions = new() { ".csv", ".txt" };
-    private Dictionary<string, Select<ColumnType>> _mappingSelects = new();
+    private Dictionary<string, MudSelect<ColumnType>> _mappingSelects = new();
 
     private Dictionary<string, ColumnType> _columnTypes = new()
     {
@@ -119,7 +100,7 @@ else
         ["Credit & Debit"] = ColumnType.CreditDebitCombined
     };
 
-    Select<ColumnType> Ref
+    MudSelect<ColumnType> Ref
     {
         set
         {
@@ -130,29 +111,29 @@ else
         }
     }
 
-    private string[] _fileContents = Array.Empty<string>();
+    private List<string[]> _fileContents = new();
     private string[] _header = Array.Empty<string>();
     private bool _hasUploadedMappings = false;
     
-    async Task OnFileUpload(FileUploadEventArgs e)
+    async Task OnFileUpload(IBrowserFile uploadedFile)
     {
         try
         {
-            var info = new FileInfo(e.File.Name);
+            var info = new FileInfo(uploadedFile.Name);
             
             if (!_acceptableExtensions.Contains(info.Extension))
                 return;
 
             using MemoryStream memStream = new();
-            await e.File.WriteToStreamAsync(memStream);
+            await uploadedFile.OpenReadStream().CopyToAsync(memStream);
             using TextReader reader = new StreamReader(memStream);
             memStream.Position = 0;
             var contents = await reader.ReadToEndAsync();
             
-            if (e.File.Name == "column-mappings.json")
+            if (uploadedFile.Name == "column-mappings.json")
             {
                 var mappings = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<ColumnType, int>>(contents); 
-                StatementService.SetMappings(mappings ?? new());
+                await StatementService.SetMappings(mappings ?? new());
                 _hasUploadedMappings = true;
                 StateHasChanged();
                 return;
@@ -160,7 +141,15 @@ else
             
             var lines = contents.Split('\n');
             _header = lines[0].Split(',');
-            _fileContents = lines[1..];
+
+            foreach (var line in lines[1..])
+            {
+                if (string.IsNullOrWhiteSpace(line.Trim()))
+                    continue;
+                var parts = line.Split(',');
+                _fileContents.Add(parts);
+            }
+            
             StateHasChanged();
         }
         catch (Exception ex)
@@ -174,14 +163,14 @@ else
         await base.OnAfterRenderAsync(firstRender);
 
         foreach (var pair in _mappingSelects)
-            pair.Value.SelectedValueChanged = EventCallback.Factory.Create<ColumnType>(this, () => OnHeaderLinkChange(pair.Key));
+            pair.Value.ValueChanged = EventCallback.Factory.Create<ColumnType>(this, () => OnHeaderLinkChange(pair.Key));
     }
 
-    private void OnHeaderLinkChange(string headerText)
+    private async Task OnHeaderLinkChange(string headerText)
     {
-        var selectedItem = _mappingSelects[headerText].SelectedValue;
+        var selectedItem = _mappingSelects[headerText].Value;
         var headerIndex = _header.Index(x => x == headerText);
-        StatementService.UpdateMapping(selectedItem, headerIndex);
+        await StatementService.UpdateMapping(selectedItem, headerIndex);
     }
 
     private async Task DownloadConfiguration()

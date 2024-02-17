@@ -1,22 +1,28 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using BadgerBudgets;
 using BadgerBudgets.Services;
-using Blazorise;
-using Blazorise.Icons.Material;
-using Blazorise.Material;
+using Blazored.LocalStorage;
+using MudBlazor.Services;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
-builder.Services.AddBlazorise(options =>
-    {
-        options.Immediate = true;
-    })
-    .AddMaterialProviders()
-    .AddMaterialIcons();
+builder.Services.AddMudServices();
+builder.Services.AddBlazoredLocalStorageAsSingleton(config =>
+{
+    config.JsonSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
+    config.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+    config.JsonSerializerOptions.IgnoreReadOnlyFields = true;
+    config.JsonSerializerOptions.IgnoreReadOnlyProperties = true;
+    config.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+    config.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    config.JsonSerializerOptions.WriteIndented = false;
+});
 
 builder.Services.AddSingleton<StatementService>();
 

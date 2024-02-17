@@ -1,98 +1,116 @@
 ﻿@page "/"
-@using Blazorise.Charts
 @using BadgerBudgets.Services
 @inject StatementService StatementService
+@inject ISnackbar SnackbarService
 
 <PageTitle>Dashboard</PageTitle>
 
-<SnackbarStack @ref="_snackbarStack"
-               Location="SnackbarStackLocation.Top"
-               DelayCloseOnClick/>
+<MudContainer>
+    <MudFileUpload T="IBrowserFile" FilesChanged="OnFileUpload" Accept=".csv" AppendMultipleFiles>
+        <ButtonTemplate>
+            <MudButton HtmlTag="label"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.CloudUpload"
+                       for="@context.Id">
+                Upload Statements
+            </MudButton>
+        </ButtonTemplate>
+    </MudFileUpload>
+</MudContainer>
 
-<Row>
-    <Column>
-        <FilePicker Multiple
-                    Upload="OnFileUpload"
-                    ShowMode="FilePickerShowMode.Dropdown"/>
-    </Column>
-</Row>
+@if (StatementService.HasContent)
+{
+    <MudContainer>
+        <MudPaper Class="pa-4">
+            @if (_selectedCategoryChartIndex >= 0)
+            {
+                <MudText Style="margin-bottom: 8px" Align="Align.Center" 
+                         Typo="Typo.body2" 
+                         Color="Color.Tertiary">@_categorizedLabels[_selectedCategoryChartIndex]</MudText>
+            }
+            <MudChart ChartType="ChartType.Pie"
+                      InputData="@_categorizedData"
+                      InputLabels="@_categorizedLabels"
+                      @bind-SelectedIndex="_selectedCategoryChartIndex"
+                      Width="300px"
+                      Height="300px"/>
+        </MudPaper>
+    </MudContainer>
+}
 
-<Row>
-    <Column ColumnSize="ColumnSize.IsThird.OnWidescreen">
-        <Card Margin="Margin.Is4.OnY">
-            <CardHeader>
-                <CardTitle>Spending by Category</CardTitle>
-                <CardBody>
-                    <Chart @ref="categoryChart"
-                           Type="ChartType.Pie"
-                           TItem="double"
-                           Options="@categoryOptions"/>
-                </CardBody>
-            </CardHeader>
-        </Card>
-    </Column>
-    <Column ColumnSize="ColumnSize.IsFull">
-        <Table Striped Hoverable Responsive Overflow="Overflow.Scroll" Height="Height.Is33">
-            <TableHeader>
-                <TableHeaderCell>Transaction Date</TableHeaderCell>
-                <TableHeaderCell>Amount</TableHeaderCell>
-                <TableHeaderCell>Description</TableHeaderCell>
-                <TableHeaderCell>Category</TableHeaderCell>
-            </TableHeader>
-            <TableBody>
-                @{
-                    var totalIncoming = 0d;
-                    var totalOutgoing = 0d;
-
-                    foreach (var item in StatementService.Items)
-                    {
-                        var color = item.IsDebit ? TextColor.Default : TextColor.Success;
-                        if (item.IsDebit)
-                            totalOutgoing += item.Amount;
-                        else
-                            totalIncoming += item.Amount;
-
-                        <TableRow>
-                            <TableRowCell>@item.Date.ToString()</TableRowCell>
-                            <TableRowCell TextColor="color">@item.Amount.ToString("C")</TableRowCell>
-                            <TableRowCell>@item.LineItem</TableRowCell>
-                            <TableRowCell>@item.Category</TableRowCell>
-                        </TableRow>
-                    }
-
-                    <TableRow>
-                        <TableRowCell>Incoming</TableRowCell>
-                        <TableRowCell>@totalIncoming.ToString("C")</TableRowCell>
-                        <TableRowCell>Outgoing</TableRowCell>
-                        <TableRowCell TextColor="TextColor.Danger">@totalOutgoing.ToString("C")</TableRowCell>
-                    </TableRow>
-                }
-            </TableBody>
-        </Table>
-    </Column>
-</Row>
+<MudContainer>
+    <MudTable Items="@StatementService.Items"
+              Hover Bordered Striped
+              Filter="Filter">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Statements</MudText>
+            <MudSpacer/>
+            <MudTextField @bind-Value="_searchString"
+                          Placeholder="Search"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search"/>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Transaction Date</MudTh>
+            <MudTh>Amount</MudTh>
+            <MudTh>Description</MudTh>
+            <MudTh>Category</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            @{
+                var color = context.IsDebit ? Color.Default : Color.Success;
+                <MudTd>@context.Date.ToString()</MudTd>
+                <MudTd><MudText Color="color">@context.Amount.ToString("C")</MudText></MudTd>
+                <MudTd>@context.LineItem</MudTd>
+                <MudText>@context.Category</MudText>
+            }
+        </RowTemplate>
+        <FooterContent>
+            @{
+                var incoming = StatementService.Items.Where(x => x.IsCredit).Sum(x => x.Amount);
+                var outgoing = StatementService.Items.Where(x => x.IsDebit).Sum(x => x.Amount);
+                var isGood = incoming > outgoing;
+                var outgoingColor = isGood ? Color.Success : Color.Error;
+                var tooltipText = isGood 
+                    ? "You're spending less than what you're bringing in!" 
+                    : "You're spending more than what you're bringing in";
+            }
+            <MudTh>Incoming</MudTh>
+            <MudTh>@incoming.ToString("C")</MudTh>
+            <MudTh>Outgoing</MudTh>
+            <MudTh>
+                <MudTooltip Text="@tooltipText">
+                    <MudText Color="outgoingColor">
+                        @outgoing.ToString("C")
+                    </MudText>    
+                </MudTooltip>
+            </MudTh>
+        </FooterContent>
+        <PagerContent>
+            <MudTablePager/>
+        </PagerContent>
+    </MudTable>
+</MudContainer>
 
 @code {
     private readonly HashSet<string> _acceptableExtensions = new() { ".csv", ".txt" };
-    private SnackbarStack _snackbarStack;
-    private Chart<double> categoryChart;
-
-    ChartOptions categoryOptions = new()
-    {
-        AspectRatio = 1.5
-    };
+    private string? _searchString;
+    private int _selectedCategoryChartIndex = -1;
+    private string[] _categorizedLabels = Array.Empty<string>();
+    private double[] _categorizedData = Array.Empty<double>();
     
-    async Task OnFileUpload(FileUploadEventArgs e)
+    async Task OnFileUpload(IBrowserFile uploadedFile)
     {
         try
         {
-            var info = new FileInfo(e.File.Name);
+            var info = new FileInfo(uploadedFile.Name);
 
             if (!_acceptableExtensions.Contains(info.Extension))
                 return;
 
             using MemoryStream memStream = new();
-            await e.File.WriteToStreamAsync(memStream);
+            await uploadedFile.OpenReadStream().CopyToAsync(memStream);
             using TextReader reader = new StreamReader(memStream);
             memStream.Position = 0;
 
@@ -101,9 +119,12 @@
             var lines = contents.Split('\n');
 
             StatementService.ParseFile(lines);
-            await _snackbarStack.PushAsync($"Import Successful. {StatementService.Items.Count} Total Records",
-                SnackbarColor.Success);
-            InitializeCategoryDataSet();
+            SnackbarService.Add($"Import Successful. {StatementService.Items.Count} Total Records", Severity.Success);
+
+            var categorizedStatement = StatementService.GetAmountsByCategory();
+            _categorizedLabels = categorizedStatement.Keys.ToArray();
+            _categorizedData = categorizedStatement.Values.Select(x => x.Sum()).ToArray();
+            
             StateHasChanged();
         }
         catch (Exception ex)
@@ -112,16 +133,16 @@
         }
     }
 
-    private void InitializeCategoryDataSet()
+    private bool Filter(StatementItem item)
     {
-        var data = StatementService.GetAmountsByCategory();
-        var labels = data.Keys.ToArray();
-        var datasets = data.Select(x => new PieChartDataset<double>()
-        {
-            Label = x.Key,
-            Data = x.Value
-        }).ToArray();
-        
-        categoryChart.AddLabelsDatasetsAndUpdate(labels, datasets.ToArray());
+        if (string.IsNullOrEmpty(_searchString))
+            return true;
+
+        if (item.LineItem.Contains(_searchString, StringComparison.InvariantCultureIgnoreCase))
+            return true;
+
+        return item.Category.Contains(_searchString, StringComparison.InvariantCultureIgnoreCase) || 
+               item.Date.ToString().Contains(_searchString, StringComparison.InvariantCultureIgnoreCase);
     }
+
 }

@@ -8,4 +8,10 @@ public class StatementItem
     public bool IsDebit { get; set; }
     public bool IsCredit => !IsDebit;
     public string Category { get; set; }
+
+    public static HashSet<string> CreditCategories = new()
+    {
+        "Deposits",
+        "Interest"
+    };
 }
