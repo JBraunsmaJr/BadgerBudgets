@@ -17,8 +17,6 @@ public partial class StatementsTable : ComponentBase
     [Parameter] 
     public string Title { get; set; } = "Statements";
 
-    [Parameter] public EventCallback OnShouldUpdate { get; set; }
-
     [Inject] protected IDialogService DialogService { get; set; }
     [Inject] protected StatementService StatementService { get; set; }
 
@@ -29,10 +27,10 @@ public partial class StatementsTable : ComponentBase
         if (string.IsNullOrWhiteSpace(SearchString))
             return true;
 
-        if (item.LineItem.Contains(SearchString, StringComparison.InvariantCultureIgnoreCase))
+        if (item.Description.Value.Contains(SearchString, StringComparison.InvariantCultureIgnoreCase))
             return true;
 
-        return item.Category.Contains(SearchString, StringComparison.InvariantCultureIgnoreCase) ||
+        return item.Category.Value.Contains(SearchString, StringComparison.InvariantCultureIgnoreCase) ||
                item.Date.ToString().Contains(SearchString, StringComparison.InvariantCultureIgnoreCase);
     }
 
@@ -67,6 +65,5 @@ public partial class StatementsTable : ComponentBase
         await dialog.Result;
         StatementService.ApplyTransforms();
         StateHasChanged();
-        await OnShouldUpdate.InvokeAsync();
     }
 }

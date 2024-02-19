@@ -60,13 +60,7 @@ public partial class TransformEditor : ComponentBase
     {
         var parameters = new DialogParameters<TransformDialog>();
         parameters.Add(x => x.ColumnType, ColumnType);
-        parameters.Add(x=>x.IncomingValue, ColumnType switch
-        {
-            ColumnType.Amount => StatementItem.Amount.ToString(CultureInfo.InvariantCulture),
-            ColumnType.LineItem => StatementItem.LineItem,
-            ColumnType.TransactionDate => StatementItem.Date.ToString(),
-            _ => StatementItem.Category
-        });
+        parameters.Add(x=>x.IncomingValue, StatementItem.GetColumnValue(ColumnType));
         
         var dialog = await DialogService.ShowAsync<TransformDialog>("New Transform", parameters);
         var result = await dialog.Result;

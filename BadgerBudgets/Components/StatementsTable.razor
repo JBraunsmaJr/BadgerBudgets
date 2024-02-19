@@ -32,7 +32,7 @@
         </MudTh>
         <MudTh>
             <MudTableSortLabel T="StatementItem" SortLabel="LineItem"
-                               SortBy="@(statement=>statement.LineItem)">
+                               SortBy="@(statement=>statement.Description)">
                 Description
             </MudTableSortLabel>
         </MudTh>
@@ -54,10 +54,10 @@
                 <MudText Color="color">@context.Amount.ToString("C")</MudText>
             </MudTd>
             <MudTd @ondblclick="@(async () => await ManageTransformsForColumn(ColumnType.LineItem, context))" DataLabel="LineItem">
-                @context.LineItem
+                @context.Description.Value
             </MudTd>
             <MudTd @ondblclick="@(async () => await ManageTransformsForColumn(ColumnType.Category, context))" DataLabel="Category">
-                @context.Category
+                @context.Category.Value
             </MudTd>
         }
     </RowTemplate>

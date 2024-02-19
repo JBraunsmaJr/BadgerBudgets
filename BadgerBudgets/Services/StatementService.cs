@@ -58,8 +58,8 @@ public class StatementService
     public Dictionary<string, List<double>> GetAmountsByCategory(bool ignoreCredit = true)
     {
         return Items.GroupBy(x => x.Category)
-            .Where(x => !StatementItem.CreditCategories.Contains(x.Key))
-            .ToDictionary(x => x.Key, x => x.Select(y => y.Amount).ToList());
+            .Where(x => !StatementItem.CreditCategories.Contains(x.Key.Value))
+            .ToDictionary(x => x.Key.Value, x => x.Select(y => y.Amount).ToList());
     }
 
     /// <summary>
@@ -119,12 +119,10 @@ public class StatementService
             Items.Add(new()
             {
                 Amount = amount,
-                LineItem = description,
-                Category = category,
+                Description = new ModifiableColumn<string>() { OriginalValue = originalDescription, Value = description},
+                Category = new ModifiableColumn<string>() {OriginalValue = originalCategory, Value = category},
                 Date = transactionDate,
                 IsDebit = isDebit,
-                OriginalLineItem = originalDescription,
-                OriginalCategory = originalCategory
             });
         }
     }
