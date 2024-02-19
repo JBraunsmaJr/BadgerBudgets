@@ -1,0 +1,131 @@
+﻿@page "/sources/manage"
+@using BadgerBudgets.Services
+@using BadgerBudgets.Components.Dialogs
+@inject StatementService StatementService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService;
+
+@if (StatementService.SourceMaterials.Count <= 0)
+{
+    <MudContainer>
+        <MudText Align="Align.Center">
+            No sources defined
+        </MudText>
+    </MudContainer>
+}
+else
+{
+    <MudGrid Spacing="3" Class="pa-4">
+        @foreach (var source in StatementService.SourceMaterials.Values)
+        {
+            <MudItem>
+                <MudCard Elevation="3"
+                         Outlined>
+                    <MudCardHeader>
+                        <MudText Typo="Typo.h4">@source.Name</MudText>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudContainer>
+                            <MudText Typo="Typo.h5">Mappings</MudText>
+                            @foreach (var column in source.Mappings)
+                            {
+                                var updateFunc = (int value) =>
+                                {
+                                    source.Mappings[column.Key] = value;
+                                    Snackbar.Add($"Updated {column.Key.GetName()} to {value}", Severity.Info);
+                                };
+
+                                var transform = source.Transforms.FirstOrDefault(x => x.Type == column.Key);
+                                
+                                <MudStack Row>
+                                    <MudNumericField Label="@column.Key.GetName()" Variant="Variant.Text"
+                                                     Min="0"
+                                                     ValueChanged="@updateFunc"
+                                                     Value="@column.Value"/>
+                                    @if (transform is not null)
+                                    {
+                                        var transformTooltipText = $"Edit transform for {transform.Type.GetName()}";
+
+                                        var editDialog = async () => await EditTransform(transform);
+                                        <MudTooltip Text="@transformTooltipText">
+                                            <MudIconButton Icon="@Icons.Material.Filled.EditAttributes" 
+                                                           Color="Color.Info"
+                                                           OnClick="@editDialog"/>
+                                        </MudTooltip>
+                                    }
+                                    
+                                    @{
+                                        var newTransformDialog = async () => await NewTransform(source, column.Key);
+                                    }
+                                    <MudTooltip Text="Add Transform">
+                                        <MudIconButton Color="Color.Secondary"
+                                                       OnClick="@newTransformDialog"
+                                                       Icon="@Icons.Material.Filled.Add"
+                                                       />
+                                    </MudTooltip>
+                                </MudStack>
+                            }
+                        </MudContainer>
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudToolBar>
+                            @{ var tooltip = $"Delete {source.Name}"; }
+                            <MudTooltip Text="@tooltip">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Color="Color.Error"
+                                               OnClick="@(() => DeleteSource(source.Name))"/>
+                            </MudTooltip>
+                        </MudToolBar>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+@code {
+
+    protected async Task EditTransform(ColumnTransform transform)
+    {
+        var parameters = new DialogParameters<TransformDialog>();
+        parameters.Add(x => x.Transform, transform);
+
+        var dialog = await DialogService.ShowAsync<TransformDialog>("Edit Transform", parameters);
+        var result = await dialog.Result;
+
+        if (result.Canceled) return;
+        var newTransform = (ColumnTransform)result.Data;
+
+        transform.Condition = newTransform.Condition;
+        transform.DestinationValue = newTransform.DestinationValue;
+        transform.SourceValue = newTransform.SourceValue;
+        transform.ColumnCondition = newTransform.ColumnCondition;
+        await StatementService.Save();
+    }
+
+    protected async Task NewTransform(SourceMaterial source, ColumnType type)
+    {
+        var parameters = new DialogParameters<TransformDialog> { { x=>x.ColumnType, type } };
+
+        var dialog = await DialogService.ShowAsync<TransformDialog>("New Transform", parameters);
+        var result = await dialog.Result;
+
+        if (result.Canceled) return;
+        var transform = (ColumnTransform)result.Data;
+        source.Transforms.Add(transform);
+        Snackbar.Add($"Added Transform for {transform.Type.GetName()}");
+        await StatementService.Save();
+    }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        await StatementService.LoadFromStorage();
+    }
+
+    async Task DeleteSource(string name)
+    {
+        StatementService.SourceMaterials.Remove(name);
+        await StatementService.Save();
+    }
+}

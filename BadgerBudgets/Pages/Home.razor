@@ -6,109 +6,70 @@
 <PageTitle>Dashboard</PageTitle>
 
 <MudContainer>
-    <MudFileUpload T="IBrowserFile" FilesChanged="OnFileUpload" Accept=".csv" AppendMultipleFiles>
-        <ButtonTemplate>
-            <MudButton HtmlTag="label"
-                       Variant="Variant.Filled"
-                       Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.CloudUpload"
-                       for="@context.Id">
-                Upload Statements
-            </MudButton>
-        </ButtonTemplate>
-    </MudFileUpload>
+    <MudGrid Spacing="3" Class="pa-4">
+        @foreach (var source in StatementService.SourceMaterials)
+        {
+            <MudFileUpload T="IBrowserFile" 
+                           FilesChanged="@(file => OnFileUpload(source.Key, file))"
+                           Accept=".csv"
+                           Hidden="@false"
+                           InputClass="absolute mud-width-full mud-height-full overflow-hidden z-20"
+                           InputStyle="opacity:0">
+                <ButtonTemplate>
+                    <MudPaper Height="100%" Width="100%"
+                              Outlined
+                              Class="@_dragClass"
+                              @ondragenter="@SetDragClass"
+                              @ondragleave="@ClearDragClass"
+                              @ondragend="@ClearDragClass">
+                        <MudText Typo="Typo.h6">
+                            Drag and drop files from @source.Key into here
+                        </MudText>
+                        
+                        <MudButton HtmlTag="label"
+                                   for="@context.Id"
+                                   Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   Style="display: none">
+                            Upload
+                        </MudButton>
+                    </MudPaper>
+                </ButtonTemplate>
+            </MudFileUpload>
+        }
+    </MudGrid>
 </MudContainer>
 
-@if (StatementService.HasContent)
+@if (StatementService.Items.Count > 0)
 {
     <MudContainer>
-        <MudPaper Class="pa-4">
-            @if (_selectedCategoryChartIndex >= 0)
-            {
-                <MudText Style="margin-bottom: 8px" Align="Align.Center" 
-                         Typo="Typo.body2" 
-                         Color="Color.Tertiary">@_categorizedLabels[_selectedCategoryChartIndex]</MudText>
-            }
-            <MudChart ChartType="ChartType.Pie"
-                      InputData="@_categorizedData"
-                      InputLabels="@_categorizedLabels"
-                      @bind-SelectedIndex="_selectedCategoryChartIndex"
-                      Width="300px"
-                      Height="300px"/>
-        </MudPaper>
+        <MudGrid Spacing="3" Class="pa-4">
+                <MudItem sm="12">
+                    <StatementsTable Data="StatementService.Items"
+                                     Height="400px"/>
+                </MudItem>
+            </MudGrid>    
     </MudContainer>
 }
 
-<MudContainer>
-    <MudTable Items="@StatementService.Items"
-              Hover Bordered Striped
-              Filter="Filter">
-        <ToolBarContent>
-            <MudText Typo="Typo.h6">Statements</MudText>
-            <MudSpacer/>
-            <MudTextField @bind-Value="_searchString"
-                          Placeholder="Search"
-                          Adornment="Adornment.Start"
-                          AdornmentIcon="@Icons.Material.Filled.Search"/>
-        </ToolBarContent>
-        <HeaderContent>
-            <MudTh>Transaction Date</MudTh>
-            <MudTh>Amount</MudTh>
-            <MudTh>Description</MudTh>
-            <MudTh>Category</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            @{
-                var color = context.IsDebit ? Color.Default : Color.Success;
-                <MudTd>@context.Date.ToString()</MudTd>
-                <MudTd><MudText Color="color">@context.Amount.ToString("C")</MudText></MudTd>
-                <MudTd>@context.LineItem</MudTd>
-                <MudText>@context.Category</MudText>
-            }
-        </RowTemplate>
-        <FooterContent>
-            @{
-                var incoming = StatementService.Items.Where(x => x.IsCredit).Sum(x => x.Amount);
-                var outgoing = StatementService.Items.Where(x => x.IsDebit).Sum(x => x.Amount);
-                var isGood = incoming > outgoing;
-                var outgoingColor = isGood ? Color.Success : Color.Error;
-                var tooltipText = isGood 
-                    ? "You're spending less than what you're bringing in!" 
-                    : "You're spending more than what you're bringing in";
-            }
-            <MudTh>Incoming</MudTh>
-            <MudTh>@incoming.ToString("C")</MudTh>
-            <MudTh>Outgoing</MudTh>
-            <MudTh>
-                <MudTooltip Text="@tooltipText">
-                    <MudText Color="outgoingColor">
-                        @outgoing.ToString("C")
-                    </MudText>    
-                </MudTooltip>
-            </MudTh>
-        </FooterContent>
-        <PagerContent>
-            <MudTablePager/>
-        </PagerContent>
-    </MudTable>
-</MudContainer>
 
 @code {
-    private readonly HashSet<string> _acceptableExtensions = new() { ".csv", ".txt" };
-    private string? _searchString;
-    private int _selectedCategoryChartIndex = -1;
-    private string[] _categorizedLabels = Array.Empty<string>();
-    private double[] _categorizedData = Array.Empty<double>();
-    
-    async Task OnFileUpload(IBrowserFile uploadedFile)
+    private const string DefaultDragClass = "relative rounded-lg border-2 border-dashed pa-4 mt-4 mud-width-full mud-height-full z-10";
+    private string _dragClass = DefaultDragClass;
+
+    private void SetDragClass() => _dragClass = $"{DefaultDragClass} mud-border-primary";
+    private void ClearDragClass() => _dragClass = DefaultDragClass;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        await StatementService.LoadFromStorage();
+    }
+
+    async Task OnFileUpload(string sourceName, IBrowserFile uploadedFile)
     {
         try
         {
-            var info = new FileInfo(uploadedFile.Name);
-
-            if (!_acceptableExtensions.Contains(info.Extension))
-                return;
-
             using MemoryStream memStream = new();
             await uploadedFile.OpenReadStream().CopyToAsync(memStream);
             using TextReader reader = new StreamReader(memStream);
@@ -118,12 +79,8 @@
 
             var lines = contents.Split('\n');
 
-            StatementService.ParseFile(lines);
+            StatementService.ParseFile(sourceName, lines);
             SnackbarService.Add($"Import Successful. {StatementService.Items.Count} Total Records", Severity.Success);
-
-            var categorizedStatement = StatementService.GetAmountsByCategory();
-            _categorizedLabels = categorizedStatement.Keys.ToArray();
-            _categorizedData = categorizedStatement.Values.Select(x => x.Sum()).ToArray();
             
             StateHasChanged();
         }
@@ -132,17 +89,4 @@
             Console.Error.WriteLine(ex);
         }
     }
-
-    private bool Filter(StatementItem item)
-    {
-        if (string.IsNullOrEmpty(_searchString))
-            return true;
-
-        if (item.LineItem.Contains(_searchString, StringComparison.InvariantCultureIgnoreCase))
-            return true;
-
-        return item.Category.Contains(_searchString, StringComparison.InvariantCultureIgnoreCase) || 
-               item.Date.ToString().Contains(_searchString, StringComparison.InvariantCultureIgnoreCase);
-    }
-
 }

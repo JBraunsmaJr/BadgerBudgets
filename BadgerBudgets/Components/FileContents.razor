@@ -1,0 +1,22 @@
+﻿<MudCard Elevation="2">
+    <MudCardHeader>
+        <MudText Typo="Typo.h6">File Contents</MudText>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudTable Striped Elevation="3" Dense Items="Rows"
+                  Height="400px" FixedHeader>
+            <HeaderContent>
+                @foreach (var headerItem in Header)
+                {
+                    <MudTh>@headerItem</MudTh>
+                }
+            </HeaderContent>
+            <RowTemplate>
+                @foreach (var item in context)
+                {
+                    <MudTd>@item</MudTd>
+                }
+            </RowTemplate>
+        </MudTable>
+    </MudCardContent>
+</MudCard>

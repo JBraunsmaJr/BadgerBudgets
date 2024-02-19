@@ -1,5 +1,4 @@
-﻿using BadgerBudgets.Extensions;
-using BadgerBudgets.Models;
+﻿using BadgerBudgets.Models;
 using Blazored.LocalStorage;
 using Newtonsoft.Json;
 
@@ -8,32 +7,42 @@ namespace BadgerBudgets.Services;
 public class StatementService
 {
     public static List<StatementItem> Items { get; set; } = new();
-    private static Dictionary<ColumnType, int> _columnMappings = new();
-    public static bool HasContent => Items.Count != 0;
-    public static bool HasMappings => _columnMappings.Count > 0;
-    private const string MappingsKey = "ColumnMappings";
-
-    private readonly ILocalStorageService _storage;
+    public static Dictionary<string, SourceMaterial> SourceMaterials { get; set; } = new();
+    public HashSet<string> CustomCategories { get; set; } = new();
+    
     private readonly ILogger<StatementService> _logger;
+
+    private const string MaterialsKey = "Materials";
+    private readonly ILocalStorageService _storage;
 
     public StatementService(ILocalStorageService storage, ILogger<StatementService> logger)
     {
-        _storage = storage;
         _logger = logger;
+        _storage = storage;
         Task.Run(LoadFromStorage);
     }
 
-    async Task LoadFromStorage()
+    public async Task Save()
     {
-        if (!await _storage.ContainKeyAsync(MappingsKey))
+        await _storage.SetItemAsStringAsync(MaterialsKey,SerializeMappings());
+    }
+    
+    public async Task LoadFromStorage()
+    {
+        if (!await _storage.ContainKeyAsync(MaterialsKey))
             return;
-
+        
         try
         {
-            var json = await _storage.GetItemAsStringAsync(MappingsKey);
-            
-            if(!string.IsNullOrWhiteSpace(json))
-                _columnMappings = JsonConvert.DeserializeObject<Dictionary<ColumnType, int>>(json)!;
+            var json = await _storage.GetItemAsStringAsync(MaterialsKey);
+
+            if (!string.IsNullOrWhiteSpace(json))
+            {
+                var materials = JsonConvert.DeserializeObject<SourceMaterial[]>(json);
+                
+                if(materials is not null)
+                    SourceMaterials = materials.ToDictionary(x => x.Name, x => x);
+            }
         }
         catch (Exception ex)
         {
@@ -41,45 +50,11 @@ public class StatementService
         }
     }
 
-    public async Task SetMappings(Dictionary<ColumnType, int> mappings)
-    {
-        _columnMappings = mappings;
-        await SaveToLocal();
-    }
+    public byte[] SaveToFile() 
+        => System.Text.Encoding.UTF8.GetBytes(SerializeMappings());
 
-    public async Task RemoveMapping(ColumnType type)
-    {
-        if (!_columnMappings.ContainsKey(type))
-            return;
-        _columnMappings.Remove(type);
-        await Task.Run(SaveToLocal);
-    }
-
-    public async Task RemoveMapping(int index)
-    {
-        if (!_columnMappings.ContainsValue(index)) return;
-
-        var valueIndex = _columnMappings.Values.Index(x => x == index);
-        var keyIndex = _columnMappings.Keys.ToArray()[valueIndex];
-        _columnMappings.Remove(keyIndex);
-        await Task.Run(SaveToLocal);
-    }
-
-    public async Task UpdateMapping(ColumnType type, int columnIndex)
-    {
-        _columnMappings[type] = columnIndex;
-        await Task.Run(SaveToLocal);
-    }
-
-    async Task SaveToLocal()
-    {
-        await _storage.SetItemAsStringAsync(MappingsKey, JsonConvert.SerializeObject(_columnMappings));
-    }
-
-    public string SerializeMappings()
-    {
-        return JsonConvert.SerializeObject(_columnMappings);
-    }
+    private string SerializeMappings() 
+        => JsonConvert.SerializeObject(SourceMaterials.Values.ToArray());
 
     public Dictionary<string, List<double>> GetAmountsByCategory(bool ignoreCredit = true)
     {
@@ -88,37 +63,45 @@ public class StatementService
             .ToDictionary(x => x.Key, x => x.Select(y => y.Amount).ToList());
     }
 
-    public void ParseFile(string[] lines, char delimiter = ',')
+    public void ParseFile(string sourceName, string[] lines, char delimiter = ',')
     {
+        if (!SourceMaterials.ContainsKey(sourceName))
+            return;
+
+        var source = SourceMaterials[sourceName];
+        var mappings = source.Mappings;
+        
         foreach (var line in lines)
         {
             var parts = line.Split(delimiter);
             if (parts.Length < 5)
                 continue;
 
-            DateOnly.TryParse(parts[_columnMappings[ColumnType.TransactionDate]], out var transactionDate);
-            double.TryParse(parts[_columnMappings[ColumnType.Amount]], out var amount);
-            var description = parts[_columnMappings[ColumnType.LineItem]];
-            var category = parts[_columnMappings[ColumnType.Category]];
-
+            parts = source.ApplyTransforms(parts);
+            
+            DateOnly.TryParse(parts[mappings[ColumnType.TransactionDate]], out var transactionDate);
+            double.TryParse(parts[mappings[ColumnType.Amount]], out var amount);
+            var description = parts[mappings[ColumnType.LineItem]];
+            var category = parts[mappings[ColumnType.Category]];
+            
             var isDebit = true;
-            if (_columnMappings.TryGetValue(ColumnType.Debit, out var mapping))
+            if (mappings.TryGetValue(ColumnType.Debit, out var mapping))
             {
                 isDebit = parts[mapping]
                     .Contains("debit", StringComparison.InvariantCultureIgnoreCase);
             }
-            else if (_columnMappings.TryGetValue(ColumnType.CreditDebitCombined, out var columnMapping))
+            else if (mappings.TryGetValue(ColumnType.CreditDebitCombined, out var columnMapping))
             {
                 isDebit = parts[columnMapping]
                     .Contains("debit", StringComparison.InvariantCultureIgnoreCase);
             }
-
+            
             if (transactionDate == DateOnly.MinValue ||
                 string.IsNullOrWhiteSpace(description) ||
                 string.IsNullOrWhiteSpace(category) ||
                 amount == 0)
                 continue;
-
+            
             Items.Add(new()
             {
                 Amount = amount,

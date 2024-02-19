@@ -1,0 +1,36 @@
+﻿@page "/sources"
+@using BadgerBudgets.Services
+@inject StatementService StatementService
+@inject IJSRuntime RuntimeService
+
+<PageTitle>Settings</PageTitle>
+
+<MudContainer>
+    <MudGrid>
+        <MudItem>
+            <MudButton Disabled="!StatementService.SourceMaterials.Any()" 
+                       IconClass="@Icons.Material.Filled.Download" 
+                       Variant="Variant.Filled"
+                       Color="Color.Info"
+                       OnClick="@DownloadConfiguration">Download Mappings</MudButton>        
+        </MudItem>
+        
+        <MudItem xs="12">
+            <MudText Typo="Typo.body1">
+                Every institution has different column headers. Upload a statement then map columns! Too easy!
+            </MudText>        
+        </MudItem>
+        
+        <MudItem xs="12">
+            <SourceMaterialEditor/>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private async Task DownloadConfiguration()
+    {
+        var file = StatementService.SaveToFile();
+        await RuntimeService.InvokeVoidAsync("BlazorDownloadFile", "column-mappings.json", "text/json", file);
+    }
+}

@@ -1,0 +1,34 @@
+﻿<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="3">
+            <MudItem>
+                <MudForm>
+                    <MudText>@ColumnType.GetName()</MudText>
+                    <MudTextField Label="Source Contains" @bind-Value="@_sourceValue"/>
+                    <SelectEnum TEnum="TransformCondition" Label="Condition" OnValueChanged="@(newValue => _sourceCondition = newValue)"/>
+                    <MudTextField Label="Destination Value" @bind-Value="@_sourceDestinationValue"/>
+                    <MudCheckBox T="bool" Label="Use Conditional?" ValueChanged="@(newValue => { _useConditional = newValue; _conditionalTransform = newValue ? new() : null; })"/>
+                </MudForm>
+            </MudItem>
+            
+            @if (_useConditional)
+            {
+                <MudItem>
+                    <MudText Typo="Typo.h6">Conditional Transform</MudText>
+                    <SelectEnum TEnum="ColumnType"
+                                Label="Column Type"
+                                OnValueChanged="@(newValue => _conditionalTransform!.ColumnType = newValue)"/>
+                    <SelectEnum TEnum="TransformCondition"
+                                Label="Condition"
+                                OnValueChanged="@(newValue => _conditionalTransform!.Condition = newValue)"/>
+                    <MudTextField Label="Destination Value" T="string"
+                                  ValueChanged="@(newValue => _conditionalTransform!.Value = newValue)"/>
+                </MudItem>    
+            }
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Save</MudButton>
+    </DialogActions>
+</MudDialog>

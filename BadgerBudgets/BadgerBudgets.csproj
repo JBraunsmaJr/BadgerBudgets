@@ -17,12 +17,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Content Include="..\.dockerignore">
-        <Link>.dockerignore</Link>
-      </Content>
-    </ItemGroup>
-
-    <ItemGroup>
       <_ContentIncludedByDefault Remove="wwwroot\css\material-plugins.css" />
       <_ContentIncludedByDefault Remove="wwwroot\css\material-plugins.css.map" />
       <_ContentIncludedByDefault Remove="wwwroot\css\material-plugins.min.css" />

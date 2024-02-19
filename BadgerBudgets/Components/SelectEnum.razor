@@ -1,0 +1,8 @@
+﻿@typeparam TEnum where TEnum : struct, Enum
+
+<MudSelect T="TEnum" Label="@Label" @bind-Value="@Value">
+    @foreach (var pair in _cache)
+    {
+        <MudSelectItem Value="@pair.Key">@pair.Value</MudSelectItem>
+    }
+</MudSelect>

@@ -1,0 +1,89 @@
+﻿<MudPaper Elevation="3" Outlined Class="pa-4">
+    <MudGrid>
+        <MudItem xs="12">
+            <MudTimeline TimelineOrientation="TimelineOrientation.Horizontal"
+                         TimelinePosition="TimelinePosition.Bottom">
+                @foreach (var cols in stages)
+                {
+                    var color = cols.Value == _currentStage ? Color.Primary : Color.Dark;
+                    <MudTimelineItem Color="@color">
+                        <ItemContent>
+                            @cols.Key
+                        </ItemContent>
+                    </MudTimelineItem>
+                }
+            </MudTimeline>
+        </MudItem>
+        
+        @if (_currentStage == SourceMaterialEditorStage.ProvideName)
+        {
+            <MudItem xs="12">
+                <MudPaper Class="pa-4">
+                    <MudForm @ref="_form" @bind-isValid="@_isValidForm" @bind-Errors="@_formErrors">
+                        <MudTextField T="string" Label="Source Name" Required RequiredError="Name is required" @bind-Value="_materialSourceName"/>
+                        
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   Disabled="@(!_isValidForm)"
+                                   Class="ml-auto" OnClick="OnSubmitName">Next</MudButton>
+                    </MudForm>
+                </MudPaper>
+            </MudItem>
+        }
+        
+        @if (_currentStage == SourceMaterialEditorStage.UploadStatement)
+        {
+            <MudItem>
+                <MudFileUpload Accept=".csv" T="IBrowserFile"
+                               FilesChanged="OnFileUpload">
+                    <ButtonTemplate>
+                        <MudButton HtmlTag="label"
+                                   Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.CloudUpload"
+                                   for="@context.Id">
+                            Upload Statement
+                        </MudButton>
+                    </ButtonTemplate>
+                </MudFileUpload>
+            </MudItem>    
+        }
+        
+        @if (_currentStage == SourceMaterialEditorStage.ProvideColumnMappings)
+        {
+            if (HeaderRow.Length > 0)
+            {
+                <MudItem xs="12">
+                    <MudText Typo="Typo.h5">Column Mappings</MudText>
+                    <MudGrid Spacing="3" Class="pa-4">
+                        @foreach (var headerItem in HeaderRow)
+                        {
+                            <MudItem xs="6" sm="4" md="3">
+                                <MudSelect T="ColumnType" Label="@headerItem" AnchorOrigin="Origin.BottomCenter" @ref="@Ref">
+                                    <MudSelectItem Value="@ColumnType.None"></MudSelectItem>
+                                    @foreach (var remainingType in _remainingColumnTypes)
+                                    {
+                                        <MudSelectItem Value="remainingType">@remainingType.GetName()</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                        }
+                        
+                        <MudItem xs="12">
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       OnClick="@OnCreateMappingClick">Finish</MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudItem>
+            }
+            
+            if (Rows.Count > 0)
+            {
+                <MudItem xs="12">
+                    <FileContents Header="HeaderRow" Rows="Rows"/>
+                </MudItem>
+            }
+        }
+    </MudGrid>
+</MudPaper>

@@ -1,0 +1,26 @@
+﻿<MudSelect T="ColumnType" @bind-Value="Value" Label="@Label">
+    <MudSelectItem Value="ColumnType.None">None</MudSelectItem>
+    <MudSelectItem Value="ColumnType.TransactionDate">@ColumnType.TransactionDate.GetName()</MudSelectItem>
+    <MudSelectItem Value="ColumnType.Amount">@ColumnType.Amount.GetName()</MudSelectItem>
+    <MudSelectItem Value="ColumnType.Credit">@ColumnType.Credit.GetName()</MudSelectItem>
+    <MudSelectItem Value="ColumnType.Debit">@ColumnType.Debit.GetName()</MudSelectItem>
+    <MudSelectItem Value="ColumnType.LineItem">@ColumnType.LineItem.GetName()</MudSelectItem>
+    <MudSelectItem Value="ColumnType.Category">@ColumnType.Category.GetName()</MudSelectItem>
+    <MudSelectItem Value="ColumnType.CreditDebitCombined">@ColumnType.CreditDebitCombined.GetName()</MudSelectItem>
+</MudSelect>
+
+@code {
+    [Parameter] public EventCallback<ColumnType> OnValueChanged { get; set; }
+    [Parameter] public string Label { get; set; }
+    private ColumnType _value;
+
+    public ColumnType Value
+    {
+        get => _value;
+        set
+        {
+            _value = value;
+            OnValueChanged.InvokeAsync(value).GetAwaiter().GetResult();
+        }
+    }
+}

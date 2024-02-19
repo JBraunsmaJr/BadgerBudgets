@@ -1,0 +1,85 @@
+﻿@using BadgerBudgets.Services
+@inject ISnackbar Snackbar
+
+<MudTable Items="Data"
+          Hover Bordered Striped Dense
+          FixedFooter FixedHeader
+          Height="@Height"
+          Virtualize
+          Filter="Filter"
+          SortLabel="Sort By">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">@Title</MudText>
+        <MudSpacer/>
+        <MudTextField @bind-Value="SearchString"
+                      Placeholder="Search"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"/>
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh>
+            <MudTableSortLabel T="StatementItem" SortLabel="TransactionDate"
+                               SortBy="@(statement=>statement.Date.ToString("yyyy-M-d"))">
+                Transaction Date
+            </MudTableSortLabel>
+        </MudTh>
+        
+        <MudTh>
+            <MudTableSortLabel T="StatementItem" SortLabel="Amount"
+                               SortBy="@(statement=>statement.Amount)">
+                Amount
+            </MudTableSortLabel>
+        </MudTh>
+        <MudTh>
+            <MudTableSortLabel T="StatementItem" SortLabel="LineItem"
+                               SortBy="@(statement=>statement.LineItem)">
+                Description
+            </MudTableSortLabel>
+        </MudTh>
+        <MudTh>
+            <MudTableSortLabel T="StatementItem" SortLabel="Category"
+                               SortBy="@(statement=>statement.Category)">
+                Category
+            </MudTableSortLabel>
+        </MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        @{
+            var color = context.IsDebit ? Color.Default : Color.Success;
+            <MudTd @ondblclick="@(async ()=>await ManageTransformsForColumn(ColumnType.TransactionDate))" DataLabel="TransactionDate">@context.Date.ToString()</MudTd>
+            <MudTd @ondblclick="@(async ()=>await ManageTransformsForColumn(ColumnType.Amount))" DataLabel="Amount"><MudText Color="color">@context.Amount.ToString("C")</MudText></MudTd>
+            <MudTd @ondblclick="@(async ()=>await ManageTransformsForColumn(ColumnType.LineItem))" DataLabel="LineItem">@context.LineItem</MudTd>
+            <MudTd @ondblclick="@(async ()=>await ManageTransformsForColumn(ColumnType.Category))" DataLabel="Category">@context.Category</MudTd>
+        }
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText>No matching records found</MudText>
+    </NoRecordsContent>
+    <LoadingContent>
+        <MudText>Loading...</MudText>
+    </LoadingContent>
+    <FooterContent>
+        @{
+            var incoming = StatementService.Items.Where(x => x.IsCredit).Sum(x => x.Amount);
+            var outgoing = StatementService.Items.Where(x => x.IsDebit).Sum(x => x.Amount);
+            var isGood = incoming > outgoing;
+            var outgoingColor = isGood ? Color.Success : Color.Error;
+            var tooltipText = isGood 
+                ? "You're spending less than what you're bringing in!" 
+                : "You're spending more than what you're bringing in";
+        }
+        <MudTh>Incoming</MudTh>
+        <MudTh>@incoming.ToString("C")</MudTh>
+        <MudTh>Outgoing</MudTh>
+        <MudTh>
+            <MudTooltip Text="@tooltipText">
+                <MudText Color="outgoingColor">
+                    @outgoing.ToString("C")
+                </MudText>    
+            </MudTooltip>
+        </MudTh>
+    </FooterContent>
+    <PagerContent>
+        <MudTablePager/>
+    </PagerContent>
+</MudTable>
