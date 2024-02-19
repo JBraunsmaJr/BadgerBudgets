@@ -1,7 +1,10 @@
-﻿using BadgerBudgets.Components.Dialogs;
+﻿using System.Globalization;
+using BadgerBudgets.Components.Dialogs;
 using BadgerBudgets.Extensions;
 using BadgerBudgets.Models;
 using BadgerBudgets.Services;
+using CsvHelper;
+using CsvHelper.Configuration;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using MudBlazor;
@@ -27,6 +30,7 @@ public partial class SourceMaterialEditor : ComponentBase
     private SourceMaterialEditorStage _currentStage = SourceMaterialEditorStage.ProvideName;
     private SourceMaterial _source;
     private string? _materialSourceName;
+    private DelimiterType _materialSourceDelimiter;
     private bool _isValidForm;
     private string[] _formErrors = Array.Empty<string>();
     private MudForm _form;
@@ -76,11 +80,13 @@ public partial class SourceMaterialEditor : ComponentBase
         else _source = new();
 
         _materialSourceName = _source.Name;
+        _materialSourceDelimiter = _source.Delimiter;
     }
 
     private void OnSubmitName()
     {
         _source.Name = _materialSourceName!;
+        _source.Delimiter = _materialSourceDelimiter!;
         _currentStage = SourceMaterialEditorStage.UploadStatement;
         StateHasChanged();
     }
@@ -150,18 +156,33 @@ public partial class SourceMaterialEditor : ComponentBase
         {
             using MemoryStream memStream = new();
             await uploadedFile.OpenReadStream().CopyToAsync(memStream);
-            using TextReader reader = new StreamReader(memStream);
             memStream.Position = 0;
-            var contents = await reader.ReadToEndAsync();
-
-            var lines = contents.Split('\n');
-            HeaderRow = lines[0].Split(',');
-
-            foreach (var line in lines[1..])
+            
+            using TextReader reader = new StreamReader(memStream);
+            
+            Console.WriteLine(_materialSourceDelimiter.ToString());
+            var csvConfig = new CsvConfiguration(CultureInfo.CurrentCulture)
             {
-                if (string.IsNullOrWhiteSpace(line.Trim()))
-                    continue;
-                var parts = line.Split(',');
+                Delimiter = _materialSourceDelimiter switch
+                {
+                    DelimiterType.Comma => ",",
+                    DelimiterType.Tab => "\t"
+                },
+                HasHeaderRecord = true
+            };
+            
+            using var csvHelper = new CsvReader(reader, csvConfig);
+            await csvHelper.ReadAsync();            
+            csvHelper.ReadHeader();
+            
+            HeaderRow = csvHelper.HeaderRecord;
+            
+            while (await csvHelper.ReadAsync())
+            {
+                var parts = new string[HeaderRow.Length];
+                for (var i = 0; i < parts.Length; i++)
+                    parts[i] = csvHelper.GetField<string>(i);
+
                 Rows.Add(parts);
             }
 

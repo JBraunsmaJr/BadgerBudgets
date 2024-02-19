@@ -21,11 +21,19 @@
                 <MudPaper Class="pa-4">
                     <MudForm @ref="_form" @bind-isValid="@_isValidForm" @bind-Errors="@_formErrors">
                         <MudTextField T="string" Label="Source Name" Required RequiredError="Name is required" @bind-Value="_materialSourceName"/>
-                        
+                        <MudSelect T="DelimiterType"
+                                   Label="Delimiter"
+                                   AdornmentIcon="@Icons.Material.Filled.HorizontalSplit" 
+                                   Required
+                                   Value="@_materialSourceDelimiter"
+                                   ValueChanged="@(newValue => _materialSourceDelimiter = newValue)">
+                            <MudSelectItem Value="@DelimiterType.Comma">COMMA</MudSelectItem>
+                            <MudSelectItem Value="@DelimiterType.Tab">TAB</MudSelectItem>
+                        </MudSelect>
                         <MudButton Variant="Variant.Filled"
                                    Color="Color.Primary"
                                    Disabled="@(!_isValidForm)"
-                                   Class="ml-auto" OnClick="OnSubmitName">Next</MudButton>
+                                   Class="ml-auto" OnClick="@OnSubmitName">Next</MudButton>
                     </MudForm>
                 </MudPaper>
             </MudItem>

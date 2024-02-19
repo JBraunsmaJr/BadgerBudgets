@@ -11,6 +11,7 @@ public class SourceMaterial
     public string Name { get; set; } = default!;
     public Dictionary<ColumnType, int> Mappings { get; set; } = new();
     public Dictionary<ColumnType, List<ColumnTransform>> Transforms = new();
+    public DelimiterType Delimiter { get; set; } = DelimiterType.Comma;
 
     public void SetColumn(ColumnType type, int index)
     {

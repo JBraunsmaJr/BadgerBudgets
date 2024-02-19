@@ -27,6 +27,14 @@ else
                     <MudCardContent>
                         <MudContainer>
                             <MudText Typo="Typo.h5">Mappings</MudText>
+                            <MudSelect T="DelimiterType"
+                                       Label="Delimiter"
+                                       Required
+                                       Value="@source.Delimiter"
+                                       ValueChanged="@(newValue=>source.Delimiter=newValue)">
+                                <MudSelectItem Value="DelimiterType.Comma">COMMA</MudSelectItem>
+                                <MudSelectItem Value="DelimiterType.Tab">TAB</MudSelectItem>
+                            </MudSelect>
                             @foreach (var column in source.Mappings)
                             {
                                 var updateFunc = (int value) =>

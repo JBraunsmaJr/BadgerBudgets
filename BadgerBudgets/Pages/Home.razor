@@ -6,36 +6,47 @@
 <PageTitle>Dashboard</PageTitle>
 
 <MudContainer>
+    <MudItem xs="12">
+        <MudButton Color="Color.Dark"
+                   IconColor="Color.Tertiary"
+                   StartIcon="@Icons.Material.Filled.Clear"
+                   Variant="Variant.Filled"
+                   OnClick="@(() => { StatementService.Items.Clear(); StateHasChanged(); })">
+            Clear Statements
+        </MudButton>
+    </MudItem>
     <MudGrid Spacing="3" Class="pa-4">
         @foreach (var source in StatementService.SourceMaterials)
         {
-            <MudFileUpload T="IBrowserFile" 
-                           FilesChanged="@(file => OnFileUpload(source.Key, file))"
-                           Accept=".csv"
-                           Hidden="@false"
-                           InputClass="absolute mud-width-full mud-height-full overflow-hidden z-20"
-                           InputStyle="opacity:0">
-                <ButtonTemplate>
-                    <MudPaper Height="100%" Width="100%"
-                              Outlined
-                              Class="@_dragClass"
-                              @ondragenter="@SetDragClass"
-                              @ondragleave="@ClearDragClass"
-                              @ondragend="@ClearDragClass">
-                        <MudText Typo="Typo.h6">
-                            Drag and drop files from @source.Key into here
-                        </MudText>
-                        
-                        <MudButton HtmlTag="label"
-                                   for="@context.Id"
-                                   Variant="Variant.Filled"
-                                   Color="Color.Primary"
-                                   Style="display: none">
-                            Upload
-                        </MudButton>
-                    </MudPaper>
-                </ButtonTemplate>
-            </MudFileUpload>
+            <MudItem>
+                <MudFileUpload T="IBrowserFile"
+                               FilesChanged="@(file => OnFileUpload(source.Key, file))"
+                               Accept=".csv"
+                               Hidden="@false"
+                               InputClass="absolute mud-width-full mud-height-full overflow-hidden z-20"
+                               InputStyle="opacity:0">
+                    <ButtonTemplate>
+                        <MudPaper Height="100%" Width="100%"
+                                  Outlined
+                                  Class="@_dragClass"
+                                  @ondragenter="@SetDragClass"
+                                  @ondragleave="@ClearDragClass"
+                                  @ondragend="@ClearDragClass">
+                            <MudText Typo="Typo.h6">
+                                Drag and drop files from @source.Key into here
+                            </MudText>
+
+                            <MudButton HtmlTag="label"
+                                       for="@context.Id"
+                                       Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       Style="display: none">
+                                Upload
+                            </MudButton>
+                        </MudPaper>
+                    </ButtonTemplate>
+                </MudFileUpload>
+            </MudItem>
         }
     </MudGrid>
 </MudContainer>
@@ -75,11 +86,7 @@
             using TextReader reader = new StreamReader(memStream);
             memStream.Position = 0;
 
-            var contents = await reader.ReadToEndAsync();
-
-            var lines = contents.Split('\n');
-
-            StatementService.ParseFile(sourceName, lines);
+            await StatementService.ParseFile(sourceName, reader);
             SnackbarService.Add($"Import Successful. {StatementService.Items.Count} Total Records", Severity.Success);
             
             StateHasChanged();

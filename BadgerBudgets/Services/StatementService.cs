@@ -1,5 +1,9 @@
-﻿using BadgerBudgets.Models;
+﻿using System.Globalization;
+using System.Text.RegularExpressions;
+using BadgerBudgets.Models;
 using Blazored.LocalStorage;
+using CsvHelper;
+using CsvHelper.Configuration;
 using Newtonsoft.Json;
 
 namespace BadgerBudgets.Services;
@@ -74,53 +78,67 @@ public class StatementService
         }
     }
     
-    public void ParseFile(string sourceName, string[] lines, char delimiter = ',')
+    public async Task ParseFile(string sourceName, TextReader textReader)
     {
         if (!SourceMaterials.ContainsKey(sourceName))
+        {
+            Console.WriteLine($"Source materials do not have source for {sourceName}");
             return;
+        }
 
+        Console.WriteLine(sourceName);
         var source = SourceMaterials[sourceName];
         var mappings = source.Mappings;
-        
-        foreach (var line in lines)
+
+        var csvConfig = new CsvConfiguration(CultureInfo.CurrentCulture)
         {
-            var parts = line.Split(delimiter);
-            if (parts.Length < 5)
-                continue;
+            Delimiter = source.Delimiter switch
+            {
+                DelimiterType.Comma => ",",
+                DelimiterType.Tab => "\t"
+            },
+            HasHeaderRecord = true
+        };
             
-            var originalDescription = parts[mappings[ColumnType.LineItem]];
-            var originalCategory = parts[mappings[ColumnType.Category]];
+        using var csvHelper = new CsvReader(textReader, csvConfig);
+        await csvHelper.ReadAsync();            
+        csvHelper.ReadHeader();
+        
+        while(await csvHelper.ReadAsync())
+        {
+            var parts = new string[csvHelper.HeaderRecord.Length];
+
+            var originalDescription = csvHelper.GetField<string>(mappings[ColumnType.LineItem]);
+            var originalCategory = csvHelper.GetField<string>(mappings[ColumnType.Category]);
             
             parts = source.ApplyTransforms(parts);
             
-            DateOnly.TryParse(parts[mappings[ColumnType.TransactionDate]], out var transactionDate);
-            double.TryParse(parts[mappings[ColumnType.Amount]], out var amount);
-            var description = parts[mappings[ColumnType.LineItem]];
-            var category = parts[mappings[ColumnType.Category]];
+            DateOnly.TryParse(csvHelper.GetField<string>(mappings[ColumnType.TransactionDate]), out var transactionDate);
+            var number = Regex.Replace(csvHelper.GetField<string>(mappings[ColumnType.Amount]), @"[$,]", string.Empty);
+            double.TryParse(number, NumberStyles.Currency, CultureInfo.CurrentCulture, out var amount);
+            var description = csvHelper.GetField<string>(mappings[ColumnType.LineItem]);
+            var category = csvHelper.GetField<string>(mappings[ColumnType.Category]);
             
             var isDebit = true;
             if (mappings.TryGetValue(ColumnType.Debit, out var mapping))
-            {
-                isDebit = parts[mapping]
-                    .Contains("debit", StringComparison.InvariantCultureIgnoreCase);
-            }
+                isDebit = csvHelper.GetField<string>(parts[mapping]).Contains("debit", StringComparison.InvariantCultureIgnoreCase);
             else if (mappings.TryGetValue(ColumnType.CreditDebitCombined, out var columnMapping))
-            {
-                isDebit = parts[columnMapping]
-                    .Contains("debit", StringComparison.InvariantCultureIgnoreCase);
-            }
-            
+                isDebit = csvHelper.GetField<string>(columnMapping).Contains("debit", StringComparison.InvariantCultureIgnoreCase);
+
             if (transactionDate == DateOnly.MinValue ||
                 string.IsNullOrWhiteSpace(description) ||
                 string.IsNullOrWhiteSpace(category) ||
                 amount == 0)
+            {
+                Console.WriteLine($"{transactionDate} | {description} | {category} | {amount}");
                 continue;
+            }
             
             Items.Add(new()
             {
                 Amount = amount,
-                Description = new ModifiableColumn<string>() { OriginalValue = originalDescription, Value = description},
-                Category = new ModifiableColumn<string>() {OriginalValue = originalCategory, Value = category},
+                Description = new ModifiableColumn<string> { OriginalValue = originalDescription, Value = description},
+                Category = new ModifiableColumn<string> {OriginalValue = originalCategory, Value = category},
                 Date = transactionDate,
                 IsDebit = isDebit,
             });
