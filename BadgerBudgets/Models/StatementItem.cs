@@ -1,6 +1,6 @@
 ﻿namespace BadgerBudgets.Models;
 
-public class StatementItem
+public class StatementItem : IEquatable<StatementItem>
 {
     public DateOnly Date { get; set; }
     public ModifiableColumn<string> Description { get; set; }
@@ -9,6 +9,29 @@ public class StatementItem
     public bool IsCredit => !IsDebit;
 
     public ModifiableColumn<string> Category { get; set; }
+
+    public override bool Equals(object? obj)
+    {
+        if (ReferenceEquals(null, obj)) return false;
+        if (ReferenceEquals(this, obj)) return true;
+        if (obj.GetType() != GetType()) return false;
+        return Equals((StatementItem)obj);
+    }
+
+    public bool Equals(StatementItem? other)
+    {
+        if (ReferenceEquals(null, other)) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return Date.Equals(other.Date) && 
+               Description.Value.Equals(other.Description.Value) && Amount.Equals(other.Amount) && 
+               IsDebit == other.IsDebit && 
+               Category.Value.Equals(other.Category.Value);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Date, Description.Value, Amount, IsDebit, Category.Value);
+    }
 
     public override string ToString() 
         => $"Date: {Date.ToString()} | Desc: {Description} | Amount: {Amount} | Category: {Category}";
