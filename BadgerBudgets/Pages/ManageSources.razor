@@ -35,34 +35,11 @@ else
                                     Snackbar.Add($"Updated {column.Key.GetName()} to {value}", Severity.Info);
                                 };
 
-                                var transform = source.Transforms.FirstOrDefault(x => x.Type == column.Key);
-                                
                                 <MudStack Row>
                                     <MudNumericField Label="@column.Key.GetName()" Variant="Variant.Text"
                                                      Min="0"
                                                      ValueChanged="@updateFunc"
                                                      Value="@column.Value"/>
-                                    @if (transform is not null)
-                                    {
-                                        var transformTooltipText = $"Edit transform for {transform.Type.GetName()}";
-
-                                        var editDialog = async () => await EditTransform(transform);
-                                        <MudTooltip Text="@transformTooltipText">
-                                            <MudIconButton Icon="@Icons.Material.Filled.EditAttributes" 
-                                                           Color="Color.Info"
-                                                           OnClick="@editDialog"/>
-                                        </MudTooltip>
-                                    }
-                                    
-                                    @{
-                                        var newTransformDialog = async () => await NewTransform(source, column.Key);
-                                    }
-                                    <MudTooltip Text="Add Transform">
-                                        <MudIconButton Color="Color.Secondary"
-                                                       OnClick="@newTransformDialog"
-                                                       Icon="@Icons.Material.Filled.Add"
-                                                       />
-                                    </MudTooltip>
                                 </MudStack>
                             }
                         </MudContainer>
@@ -112,7 +89,6 @@ else
 
         if (result.Canceled) return;
         var transform = (ColumnTransform)result.Data;
-        source.Transforms.Add(transform);
         Snackbar.Add($"Added Transform for {transform.Type.GetName()}");
         await StatementService.Save();
     }

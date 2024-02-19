@@ -1,4 +1,5 @@
 ﻿using BadgerBudgets.Extensions;
+using BadgerBudgets.Services;
 
 namespace BadgerBudgets.Models;
 
@@ -9,23 +10,27 @@ public class SourceMaterial
 {
     public string Name { get; set; } = default!;
     public Dictionary<ColumnType, int> Mappings { get; set; } = new();
-    public List<ColumnTransform> Transforms { get; set; } = new();
-    
+    public Dictionary<ColumnType, List<ColumnTransform>> Transforms = new();
+
     public void SetColumn(ColumnType type, int index)
     {
         Mappings[type] = index;
     }
 
-    public bool HasColumnTransform(ColumnType type, out ColumnTransform? transform)
+    public void UpdateTransform(int index, ColumnTransform transform)
     {
-        transform = Transforms.FirstOrDefault(x => x.Type == type);
-        return transform is not null;
+        Transforms[transform.Type][index] = transform;
     }
 
-    public void UpdateTransform(ColumnTransform transform)
+    public void AddTransform(ColumnTransform transform)
     {
-        var index = Transforms.Index(x => x.Type == transform.Type);
-        Transforms[index] = transform;
+        if (!Transforms.ContainsKey(transform.Type))
+            Transforms.Add(transform.Type, new()
+            {
+                transform
+            });
+        else
+            Transforms[transform.Type].Add(transform);
     }
     
     public ColumnType PreviouslyMappedTo(int index) => !Mappings.ContainsValue(index) 
@@ -37,6 +42,39 @@ public class SourceMaterial
         if (Mappings.ContainsKey(type))
             Mappings.Remove(type);
     }
+
+    public void ApplyTransforms()
+    {
+        foreach (var item in StatementService.Items)
+        {
+            foreach (var transformArea in Transforms)
+            {
+                Console.WriteLine($"{transformArea.Key} - checking");
+                
+                foreach (var transform in transformArea.Value)
+                {
+                    // Transform is conditional on another column
+                    if (transform.ColumnCondition is not null)
+                    {
+                        var incoming = item.GetColumnValue(transform.ColumnCondition.ColumnType);
+                        Console.WriteLine($"Incoming: {incoming} | {transform}");
+                        if (!transform.ColumnCondition.IsValid(item.GetColumnValue(transform.ColumnCondition.ColumnType)))
+                        {
+                            Console.WriteLine($"Incoming {incoming} | {transform} ------ failed condition check");
+                            continue;
+                        }
+
+                        item.UpdateValue(transform.Type, transform.DestinationValue);
+                    }
+                    else if (transform.IsValid(item.GetColumnValue(transform.Type)))
+                    {
+                        Console.WriteLine($"Transform: {transform} --- passed");
+                        item.UpdateValue(transform.Type, transform.DestinationValue);
+                    }
+                }
+            }   
+        }
+    }
     
     public string[] ApplyTransforms(string[] row)
     {
@@ -45,7 +83,7 @@ public class SourceMaterial
 
         HashSet<int> appliedTo = [];
         
-        foreach (var transform in Transforms)
+        foreach (var transform in Transforms.SelectMany(x=>x.Value))
         {
             if (!Mappings.ContainsKey(transform.Type))
                 continue;

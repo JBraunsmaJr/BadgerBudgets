@@ -7,7 +7,10 @@
                     <MudTextField Label="Source Contains" @bind-Value="@_sourceValue"/>
                     <SelectEnum TEnum="TransformCondition" Label="Condition" OnValueChanged="@(newValue => _sourceCondition = newValue)"/>
                     <MudTextField Label="Destination Value" @bind-Value="@_sourceDestinationValue"/>
-                    <MudCheckBox T="bool" Label="Use Conditional?" ValueChanged="@(newValue => { _useConditional = newValue; _conditionalTransform = newValue ? new() : null; })"/>
+                    <MudCheckBox T="bool" 
+                                 Label="Use Conditional?"
+                                 Value="_useConditional"
+                                 ValueChanged="@(newValue => { _useConditional = newValue; _conditionalTransform = newValue ? new() : null; })"/>
                 </MudForm>
             </MudItem>
             
@@ -17,11 +20,14 @@
                     <MudText Typo="Typo.h6">Conditional Transform</MudText>
                     <SelectEnum TEnum="ColumnType"
                                 Label="Column Type"
+                                SelectedValue="_conditionalTransform!.ColumnType"
                                 OnValueChanged="@(newValue => _conditionalTransform!.ColumnType = newValue)"/>
                     <SelectEnum TEnum="TransformCondition"
                                 Label="Condition"
+                                SelectedValue="_conditionalTransform!.Condition"
                                 OnValueChanged="@(newValue => _conditionalTransform!.Condition = newValue)"/>
                     <MudTextField Label="Destination Value" T="string"
+                                  Value="@_conditionalTransform!.Value"
                                   ValueChanged="@(newValue => _conditionalTransform!.Value = newValue)"/>
                 </MudItem>    
             }

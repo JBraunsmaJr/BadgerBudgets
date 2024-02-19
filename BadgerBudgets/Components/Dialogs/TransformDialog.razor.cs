@@ -9,6 +9,7 @@ public partial class TransformDialog : ComponentBase
     [CascadingParameter] public MudDialogInstance DialogInstance { get; set; }
     [Parameter] public ColumnTransform? Transform { get; set; }
     [Parameter] public ColumnType ColumnType { get; set; }
+    [Parameter] public string? IncomingValue { get; set; }
 
     private string? _sourceValue;
     private string? _sourceDestinationValue;
@@ -21,7 +22,7 @@ public partial class TransformDialog : ComponentBase
         await base.OnInitializedAsync();
         Transform ??= new();
 
-        _sourceValue = Transform.SourceValue;
+        _sourceValue = IncomingValue ?? Transform.SourceValue;
         _sourceCondition = Transform.Condition;
         _sourceDestinationValue = Transform.DestinationValue;
         _useConditional = Transform.ColumnCondition is not null;
@@ -35,7 +36,7 @@ public partial class TransformDialog : ComponentBase
         
         Transform!.SourceValue = _sourceValue!;
         Transform.Type = ColumnType;
-        Transform.SourceValue = _sourceDestinationValue!;
+        Transform.DestinationValue = _sourceDestinationValue!;
         Transform.Condition = _sourceCondition;
         Transform.ColumnCondition = _conditionalTransform;
         

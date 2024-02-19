@@ -8,7 +8,6 @@ public class StatementService
 {
     public static List<StatementItem> Items { get; set; } = new();
     public static Dictionary<string, SourceMaterial> SourceMaterials { get; set; } = new();
-    public HashSet<string> CustomCategories { get; set; } = new();
     
     private readonly ILogger<StatementService> _logger;
 
@@ -63,6 +62,18 @@ public class StatementService
             .ToDictionary(x => x.Key, x => x.Select(y => y.Amount).ToList());
     }
 
+    /// <summary>
+    /// Reapplies transforms to existing data
+    /// </summary>
+    public void ApplyTransforms()
+    {
+        foreach (var source in SourceMaterials)
+        {
+            Console.WriteLine($"Updating values in {source.Key}");
+            source.Value.ApplyTransforms();
+        }
+    }
+    
     public void ParseFile(string sourceName, string[] lines, char delimiter = ',')
     {
         if (!SourceMaterials.ContainsKey(sourceName))
@@ -76,7 +87,10 @@ public class StatementService
             var parts = line.Split(delimiter);
             if (parts.Length < 5)
                 continue;
-
+            
+            var originalDescription = parts[mappings[ColumnType.LineItem]];
+            var originalCategory = parts[mappings[ColumnType.Category]];
+            
             parts = source.ApplyTransforms(parts);
             
             DateOnly.TryParse(parts[mappings[ColumnType.TransactionDate]], out var transactionDate);
@@ -108,7 +122,9 @@ public class StatementService
                 LineItem = description,
                 Category = category,
                 Date = transactionDate,
-                IsDebit = isDebit
+                IsDebit = isDebit,
+                OriginalLineItem = originalDescription,
+                OriginalCategory = originalCategory
             });
         }
     }

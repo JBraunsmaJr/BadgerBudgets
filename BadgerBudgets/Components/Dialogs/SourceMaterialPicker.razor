@@ -1,0 +1,29 @@
+﻿@using BadgerBudgets.Services
+@inject MudDialogInstance DialogInstance
+
+<MudDialog>
+    <DialogContent>
+        <MudSelect T="SourceMaterial" @bind-Value="@_selected"
+                   Label="Sources">
+            @foreach (var source in StatementService.SourceMaterials)
+            {
+                <MudSelectItem Value="@source.Value">@source.Key</MudSelectItem>
+            }
+        </MudSelect>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Disabled="@IsDisabled" OnClick="@Submit" Color="Color.Primary">Select</MudButton>
+        <MudButton Color="Color.Secondary" OnClick="@DialogInstance.Cancel">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+
+@code {
+    private SourceMaterial? _selected;
+    private bool IsDisabled => _selected is null;
+
+    void Submit()
+    {
+        DialogInstance.Close(DialogResult.Ok(_selected));
+    }
+}

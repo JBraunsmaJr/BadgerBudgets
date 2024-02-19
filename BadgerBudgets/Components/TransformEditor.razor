@@ -1,0 +1,43 @@
+﻿<MudDialog>
+    <DialogContent>
+        <MudGrid Spacing="3">
+            <MudItem xs="12">
+                @if (SourceMaterial.Transforms.TryGetValue(ColumnType, out var transform))
+                {
+                    <MudTable Items="@transform"
+                              Bordered Dense Striped Hover Height="400px">
+                        <HeaderContent>
+                            <MudTh>Origin Column</MudTh>
+                            <MudTh>Description</MudTh>
+                            <MudTh></MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.Type.GetName()</MudTd>
+                            <MudTd>@context.ToString()</MudTd>
+                            <MudTd>
+                                <MudToolBar Dense>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary"
+                                                   OnClick="@(async ()=> await OnUpdate(context))"/>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                                                   OnClick="@(async ()=> await OnDelete(context))"/>
+                                </MudToolBar>
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>    
+                }
+                else
+                {
+                    <MudText Align="Align.Center">No transforms</MudText>
+                }
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton IconClass="@Icons.Material.Filled.Add"
+                   Color="Color.Info"
+                   OnClick="@OnCreate">
+            New Transform
+        </MudButton>
+        <MudButton IconClass="@Icons.Material.Filled.Cancel" OnClick="@DialogInstance.Cancel">Apply Transforms</MudButton>
+    </DialogActions>
+</MudDialog>

@@ -123,37 +123,6 @@ public partial class SourceMaterialEditor : ComponentBase
             pair.Value.ValueChanged = EventCallback.Factory.Create<ColumnType>(this, ()=>OnColumnMappingChanged(pair.Key));
     }
 
-    protected async Task EditTransform(ColumnTransform transform)
-    {
-        var parameters = new DialogParameters<TransformDialog>();
-        parameters.Add(x => x.Transform, transform);
-        parameters.Add(x => x.ColumnType, transform.Type);
-
-        var dialog = await DialogService.ShowAsync<TransformDialog>("Edit Transform", parameters);
-        var result = await dialog.Result;
-
-        if (result.Canceled)
-            return;
-        
-        transform = (ColumnTransform)result.Data;
-        _source.UpdateTransform(transform);
-    }
-
-    protected async Task CreateTransform(ColumnType type)
-    {
-        var parameters = new DialogParameters<TransformDialog>();
-        parameters.Add(x => x.ColumnType, type);
-
-        var dialog = await DialogService.ShowAsync<TransformDialog>("New Transform", parameters);
-        var result = await dialog.Result;
-
-        if (result.Canceled)
-            return;
-
-        var transform = (ColumnTransform)result.Data;
-        _source.Transforms.Add(transform);
-    }
-    
     private void OnColumnMappingChanged(string headerText)
     {
         if (!_mappingSelects.ContainsKey(headerText))

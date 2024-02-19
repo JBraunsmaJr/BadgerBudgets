@@ -46,10 +46,19 @@
     <RowTemplate>
         @{
             var color = context.IsDebit ? Color.Default : Color.Success;
-            <MudTd @ondblclick="@(async ()=>await ManageTransformsForColumn(ColumnType.TransactionDate))" DataLabel="TransactionDate">@context.Date.ToString()</MudTd>
-            <MudTd @ondblclick="@(async ()=>await ManageTransformsForColumn(ColumnType.Amount))" DataLabel="Amount"><MudText Color="color">@context.Amount.ToString("C")</MudText></MudTd>
-            <MudTd @ondblclick="@(async ()=>await ManageTransformsForColumn(ColumnType.LineItem))" DataLabel="LineItem">@context.LineItem</MudTd>
-            <MudTd @ondblclick="@(async ()=>await ManageTransformsForColumn(ColumnType.Category))" DataLabel="Category">@context.Category</MudTd>
+            Console.WriteLine($"Updating {DateTime.Now:h:mm:ss tt zz} {context.ToString()}");
+            <MudTd @ondblclick="@(async () => await ManageTransformsForColumn(ColumnType.TransactionDate, context))" DataLabel="TransactionDate">
+                @context.Date.ToString()
+            </MudTd>
+            <MudTd @ondblclick="@(async () => await ManageTransformsForColumn(ColumnType.Amount, context))" DataLabel="Amount">
+                <MudText Color="color">@context.Amount.ToString("C")</MudText>
+            </MudTd>
+            <MudTd @ondblclick="@(async () => await ManageTransformsForColumn(ColumnType.LineItem, context))" DataLabel="LineItem">
+                @context.LineItem
+            </MudTd>
+            <MudTd @ondblclick="@(async () => await ManageTransformsForColumn(ColumnType.Category, context))" DataLabel="Category">
+                @context.Category
+            </MudTd>
         }
     </RowTemplate>
     <NoRecordsContent>
