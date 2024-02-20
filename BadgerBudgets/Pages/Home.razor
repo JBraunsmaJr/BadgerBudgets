@@ -1,7 +1,5 @@
 ﻿@page "/"
 @using BadgerBudgets.Services
-@inject StatementService StatementService
-@inject ISnackbar SnackbarService
 
 <PageTitle>Dashboard</PageTitle>
 
@@ -53,47 +51,80 @@
 
 @if (StatementService.Items.Count > 0)
 {
+    _items = FilterQuery.ToList();
+    
     <MudContainer>
         <MudGrid Spacing="3" Class="pa-4">
-                <MudItem sm="12">
-                    <StatementsTable Data="StatementService.Items"
-                                     Height="400px"/>
-                </MudItem>
-            </MudGrid>    
-    </MudContainer>
-}
-
-
-@code {
-    private const string DefaultDragClass = "relative rounded-lg border-2 border-dashed pa-4 mt-4 mud-width-full mud-height-full z-10";
-    private string _dragClass = DefaultDragClass;
-
-    private void SetDragClass() => _dragClass = $"{DefaultDragClass} mud-border-primary";
-    private void ClearDragClass() => _dragClass = DefaultDragClass;
-
-    protected override async Task OnInitializedAsync()
-    {
-        await base.OnInitializedAsync();
-        await StatementService.LoadFromStorage();
-    }
-
-    async Task OnFileUpload(string sourceName, IBrowserFile uploadedFile)
-    {
-        try
-        {
-            using MemoryStream memStream = new();
-            await uploadedFile.OpenReadStream().CopyToAsync(memStream);
-            using TextReader reader = new StreamReader(memStream);
-            memStream.Position = 0;
-
-            await StatementService.ParseFile(sourceName, reader);
-            SnackbarService.Add($"Import Successful. {StatementService.Items.Count} Total Records", Severity.Success);
+            <MudItem xs="12">
+                <MudToolBar>
+                    <MudDateRangePicker Label="Filter by Date Range"
+                                        MinDate="@StatementService.Items.Min(x=>x.Date.ToDateTime(TimeOnly.Parse("12:00 AM")))"
+                                        MaxDate="@StatementService.Items.Max(x=>x.Date.ToDateTime(TimeOnly.Parse("11:59 PM")))"
+                                        @bind-DateRange="@_filterDateRange"/>
+                    
+                    <MudTooltip Text="View last 3 months">
+                        <MudButton IconClass="@Icons.Material.Filled.CalendarViewMonth"
+                                   Color="Color.Tertiary"
+                                   OnClick="@(()=>SetDateRangeToLastThreeMonths())">
+                            Last 3
+                        </MudButton>
+                    </MudTooltip>
+                    
+                    <MudTooltip Text="View last month">
+                        <MudIconButton Icon="@Icons.Material.Filled.CalendarViewMonth"
+                                       Color="Color.Secondary"
+                                       OnClick="@(()=>SetDateRangeToLastMonth())"/>
+                    </MudTooltip>
+                    
+                    <MudTooltip Text="View current month">
+                        <MudIconButton Icon="@Icons.Material.Filled.CalendarViewMonth"
+                                       Color="Color.Primary"
+                                       OnClick="@(()=>SetDateRangeToCurrentMonth())"/>
+                    </MudTooltip>
+                </MudToolBar>
+            </MudItem>
             
-            StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            Console.Error.WriteLine(ex);
-        }
-    }
+            <MudItem xs="12">
+                <MudToolBar>
+                    <MudSelect T="string" MultiSelection="true" SelectAll="true" 
+                               SelectAllText="Select all Categories" @bind-Value="selectedCategory" @bind-SelectedValues="selectedCategories" 
+                               MultiSelectionTextFunc="@(new Func<List<string>, string>(GetMultiSelectionCategory))" Label="Categories" 
+                               AdornmentIcon="@Icons.Material.Filled.Category">
+                        @foreach (var category in StatementService.Items.Select(x=>x.Category.Value).Distinct())
+                        {
+                            <MudSelectItem T="string" Value="@category">@category</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudToolBar>
+                <MudCheckBox T="bool" Label="Show Visuals" @bind-Value="ShowVisualizations"></MudCheckBox>
+            </MudItem>
+            
+            @if (ShowVisualizations)
+            {
+                <MudItem md="6" xs="12">
+                    <MudPaper>
+                        <MudChart ChartType="ChartType.Pie"
+                                  @bind-SelectedIndex="_selectedCategoryIndex"
+                                  Width="300px" Height="300px"
+                                  InputLabels="_items.Select(x=>x.Category.Value).Distinct().ToArray()"
+                                  InputData="@(_items.GroupBy(x => x.Category.Value).Select(x => x.Sum(y => y.Amount)).ToArray())"/>
+                    </MudPaper>
+                    @if (selectedCategories.Any())
+                    {
+                        if (_selectedCategoryIndex >= selectedCategories.Count())
+                            _selectedCategoryIndex = 0;
+                        
+                        <MudText Typo="Typo.body1" Color="Color.Tertiary" Align="Align.Center" Class="">
+                            Selected: @selectedCategories.ElementAt(_selectedCategoryIndex)
+                        </MudText>    
+                    }
+                </MudItem>
+            }
+            
+            <MudItem sm="12">
+                <StatementsTable Data="@_items"
+                                 Height="400px"/>
+            </MudItem>
+        </MudGrid>    
+    </MudContainer>
 }

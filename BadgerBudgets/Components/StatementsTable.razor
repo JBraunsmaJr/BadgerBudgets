@@ -86,8 +86,8 @@
     </LoadingContent>
     <FooterContent>
         @{
-            var incoming = StatementService.Items.Where(x => x.IsCredit).Sum(x => x.Amount);
-            var outgoing = StatementService.Items.Where(x => x.IsDebit).Sum(x => x.Amount);
+            var incoming = Data.Where(x => x.IsCredit).Sum(x => x.Amount);
+            var outgoing = Data.Where(x => x.IsDebit).Sum(x => x.Amount);
             var isGood = incoming > outgoing;
             var outgoingColor = isGood ? Color.Success : Color.Error;
             var tooltipText = isGood 
