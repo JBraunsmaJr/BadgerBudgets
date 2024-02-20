@@ -112,7 +112,7 @@ public partial class SourceMaterialEditor : ComponentBase
             StatementService.SourceMaterials[_source.Name] = _source;
             await StatementService.Save();
             Snackbar.Add($"{_source.Name} successfully saved!", Severity.Success);
-            NavManager.NavigateTo("/");
+            NavManager.NavigateTo("");
         }
         catch (Exception ex)
         {
