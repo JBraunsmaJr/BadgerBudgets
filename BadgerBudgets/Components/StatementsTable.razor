@@ -31,13 +31,13 @@
         </MudTh>
         <MudTh>
             <MudTableSortLabel T="StatementItem" SortLabel="LineItem"
-                               SortBy="@(statement=>statement.Description)">
+                               SortBy="@(statement=>statement.Description.Value)">
                 Description
             </MudTableSortLabel>
         </MudTh>
         <MudTh>
             <MudTableSortLabel T="StatementItem" SortLabel="Category"
-                               SortBy="@(statement=>statement.Category)">
+                               SortBy="@(statement=>statement.Category.Value)">
                 Category
             </MudTableSortLabel>
         </MudTh>
