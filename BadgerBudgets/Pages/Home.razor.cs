@@ -43,7 +43,7 @@ public partial class Home : ComponentBase
         },
         Tooltip = new()
         {
-            Theme = Mode.Light
+            Theme = Mode.Dark
         }
     };
 

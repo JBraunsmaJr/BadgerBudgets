@@ -112,7 +112,7 @@
                         <ApexChart TItem="StatementItem"
                                    @ref="@_apexPieChart"
                                    Title="Spending by Category"
-                                   Options="_apexChartTimeSeries">
+                                   Options="_apexChartOptionsPie">
                             <ApexPointSeries TItem="StatementItem"
                                              Items="@_items"
                                              ShowDataLabels
@@ -128,7 +128,7 @@
                         <ApexChart TItem="StatementItem"
                                    @ref="@_apexTimeChart"
                                    Title="Spending by Category over time"
-                                   Options="_apexChartOptionsPie">
+                                   Options="_apexChartTimeSeries">
                             @foreach (var category in cats)
                             {
                                 <ApexPointSeries Items="@category.Value"
