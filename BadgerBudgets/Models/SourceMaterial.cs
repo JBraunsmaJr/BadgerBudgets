@@ -1,5 +1,4 @@
-﻿using BadgerBudgets.Extensions;
-using BadgerBudgets.Services;
+﻿using BadgerBudgets.Services;
 
 namespace BadgerBudgets.Models;
 

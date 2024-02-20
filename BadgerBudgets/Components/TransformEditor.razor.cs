@@ -1,5 +1,4 @@
-﻿using System.Globalization;
-using BadgerBudgets.Components.Dialogs;
+﻿using BadgerBudgets.Components.Dialogs;
 using BadgerBudgets.Extensions;
 using BadgerBudgets.Models;
 using BadgerBudgets.Services;
@@ -45,7 +44,7 @@ public partial class TransformEditor : ComponentBase
         SourceMaterial.UpdateTransform(index, transform);
         await StatementService.Save();
         
-        Console.WriteLine("I HAVE: " + SourceMaterial.Transforms[ColumnType][index].ToString());
+        Console.WriteLine("I HAVE: " + SourceMaterial.Transforms[ColumnType][index]);
         Snackbar.Add($"{transform.Type.GetName()} saved", Severity.Success);
     }
 

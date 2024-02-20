@@ -1,10 +1,12 @@
 ﻿using System.Globalization;
+using ApexCharts;
 using BadgerBudgets.Models;
 using BadgerBudgets.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using MudBlazor;
 using MudBlazor.Extensions;
+using Align = ApexCharts.Align;
 
 namespace BadgerBudgets.Pages;
 
@@ -19,6 +21,54 @@ public partial class Home : ComponentBase
     public bool ShowVisualizations { get; set; } = true;
     private int _selectedCategoryIndex;
 
+    private ApexChart<StatementItem> _apexPieChart;
+    private ApexChart<StatementItem> _apexTimeChart;
+    
+    private ApexChartOptions<StatementItem> _apexChartOptionsPie = new()
+    {
+        Title = new()
+        {
+            Align = Align.Center,
+            Style  = new()
+            {
+                Color = "#FFF"
+            }
+        },
+        Legend = new()
+        {
+            Labels  = new LegendLabels
+            {
+                UseSeriesColors = true
+            }
+        },
+        Tooltip = new()
+        {
+            Theme = Mode.Light
+        }
+    };
+
+    private ApexChartOptions<StatementItem> _apexChartTimeSeries = new()
+    {
+        Title = new()
+        {
+            Align = Align.Center,
+           Style  = new()
+           {
+               Color = "#FFF"
+           }
+        },
+        Legend = new()
+        {
+            Labels = new LegendLabels
+            {
+                UseSeriesColors = true
+            }
+        },
+        Tooltip = new()
+        {
+            Theme = Mode.Dark
+        }
+    };
     #endregion
     
     #region Filtering
@@ -27,7 +77,6 @@ public partial class Home : ComponentBase
     private string selectedCategory { get; set; } = "Nothing selected";
     private IEnumerable<string> selectedCategories;
     private List<StatementItem> _items = new();
-
     #endregion
     
     #region Drag and drop files    
@@ -108,7 +157,7 @@ public partial class Home : ComponentBase
                 selectedCategories = StatementService.Items.Select(x => x.Category.Value).Distinct().ToHashSet();
             else if (selectedCategories is null)
                 selectedCategories = new HashSet<string>();
-            
+
             StateHasChanged();
         }
         catch (Exception ex)
@@ -117,30 +166,42 @@ public partial class Home : ComponentBase
         }
     }
 
-    private void SetDateRangeToLastThreeMonths()
+    async Task UpdateCharts()
+    {
+        if (_apexPieChart is null || _apexTimeChart is null)
+            return;
+        
+        await _apexPieChart.UpdateSeriesAsync();
+        await _apexTimeChart.UpdateSeriesAsync();
+    }
+    
+    private async Task SetDateRangeToLastThreeMonths()
     {
         var start = DateTime.Now.AddMonths(-3).StartOfMonth(CultureInfo.CurrentCulture);
         var endOfMonth = DateTime.Now.EndOfMonth(CultureInfo.CurrentCulture);
 
         _filterDateRange = new DateRange(start, endOfMonth);
+        await UpdateCharts();
         StateHasChanged();
     }
 
-    private void SetDateRangeToLastMonth()
+    private async Task SetDateRangeToLastMonth()
     {
         var start = DateTime.Now.AddMonths(-1).StartOfMonth(CultureInfo.CurrentCulture);
         var end = start.EndOfMonth(CultureInfo.CurrentCulture);
 
         _filterDateRange = new DateRange(start, end);
+        await UpdateCharts();
         StateHasChanged();
     }
 
-    private void SetDateRangeToCurrentMonth()
+    private async Task SetDateRangeToCurrentMonth()
     {
         var start = DateTime.Now.StartOfMonth(CultureInfo.CurrentCulture);
         var end = DateTime.Now.EndOfMonth(CultureInfo.CurrentCulture);
 
         _filterDateRange = new DateRange(start, end);
+        await UpdateCharts();
         StateHasChanged();
     }
 

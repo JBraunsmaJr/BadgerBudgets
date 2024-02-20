@@ -1,8 +1,4 @@
-﻿using BadgerBudgets.Extensions;
-using BadgerBudgets.Models;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Forms;
-using MudBlazor;
+﻿using Microsoft.AspNetCore.Components;
 
 namespace BadgerBudgets.Components;
 

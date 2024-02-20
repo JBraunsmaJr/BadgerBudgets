@@ -1,4 +1,6 @@
 ﻿@page "/"
+@using Color = MudBlazor.Color
+@using ApexCharts
 @using BadgerBudgets.Services
 
 <PageTitle>Dashboard</PageTitle>
@@ -51,7 +53,7 @@
 
 @if (StatementService.Items.Count > 0)
 {
-    _items = FilterQuery.ToList();
+    _items = FilterQuery.OrderBy(x=>x.Date).ToList();
     
     <MudContainer>
         <MudGrid Spacing="3" Class="pa-4">
@@ -89,6 +91,7 @@
                     <MudSelect T="string" MultiSelection="true" SelectAll="true" 
                                SelectAllText="Select all Categories" @bind-Value="selectedCategory" @bind-SelectedValues="selectedCategories" 
                                MultiSelectionTextFunc="@(new Func<List<string>, string>(GetMultiSelectionCategory))" Label="Categories" 
+                               OnClose="@(async () => { await UpdateCharts(); StateHasChanged(); })"
                                AdornmentIcon="@Icons.Material.Filled.Category">
                         @foreach (var category in StatementService.Items.Select(x=>x.Category.Value).Distinct())
                         {
@@ -101,23 +104,40 @@
             
             @if (ShowVisualizations)
             {
+                var cats = _items.GroupBy(x => x.Category.Value)
+                    .ToDictionary(x=>x.Key, x=>x.ToList());
+                
                 <MudItem md="6" xs="12">
                     <MudPaper>
-                        <MudChart ChartType="ChartType.Pie"
-                                  @bind-SelectedIndex="_selectedCategoryIndex"
-                                  Width="300px" Height="300px"
-                                  InputLabels="_items.Select(x=>x.Category.Value).Distinct().ToArray()"
-                                  InputData="@(_items.GroupBy(x => x.Category.Value).Select(x => x.Sum(y => y.Amount)).ToArray())"/>
+                        <ApexChart TItem="StatementItem"
+                                   @ref="@_apexPieChart"
+                                   Title="Spending by Category"
+                                   Options="_apexChartTimeSeries">
+                            <ApexPointSeries TItem="StatementItem"
+                                             Items="@_items"
+                                             ShowDataLabels
+                                             XValue="@(x=>x.Category.Value)"
+                                             YAggregate="@(x=>x.Sum(y=>(decimal)y.Amount))"
+                                             SeriesType="SeriesType.Pie"/>
+                        </ApexChart>
                     </MudPaper>
-                    @if (selectedCategories.Any())
-                    {
-                        if (_selectedCategoryIndex >= selectedCategories.Count())
-                            _selectedCategoryIndex = 0;
-                        
-                        <MudText Typo="Typo.body1" Color="Color.Tertiary" Align="Align.Center" Class="">
-                            Selected: @selectedCategories.ElementAt(_selectedCategoryIndex)
-                        </MudText>    
-                    }
+                </MudItem>
+
+                <MudItem md="6" xs="12">
+                    <MudPaper>
+                        <ApexChart TItem="StatementItem"
+                                   @ref="@_apexTimeChart"
+                                   Title="Spending by Category over time"
+                                   Options="_apexChartOptionsPie">
+                            @foreach (var category in cats)
+                            {
+                                <ApexPointSeries Items="@category.Value"
+                                                 Name="@category.Key"
+                                                 XValue="@(x => x.Date.ToString("yyyy-MM"))"
+                                                 YAggregate="@(x=>x.Sum(y=>(decimal)y.Amount))"/>    
+                            }
+                        </ApexChart>
+                    </MudPaper>
                 </MudItem>
             }
             

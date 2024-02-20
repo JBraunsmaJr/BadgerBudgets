@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
 using BadgerBudgets.Models;
 using Blazored.LocalStorage;
@@ -54,7 +55,7 @@ public class StatementService
     }
 
     public byte[] SaveToFile() 
-        => System.Text.Encoding.UTF8.GetBytes(SerializeMappings());
+        => Encoding.UTF8.GetBytes(SerializeMappings());
 
     private string SerializeMappings() 
         => JsonConvert.SerializeObject(SourceMaterials.Values.ToArray());
