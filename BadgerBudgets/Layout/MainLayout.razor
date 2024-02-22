@@ -4,10 +4,33 @@
 <MudSnackbarProvider/>
 
 <MudLayout>
-    <MudDrawer Open="true">
-        <SideMenu/>        
+    <MudAppBar Elevation="2">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" OnClick="@ToggleDrawer" Edge="Edge.Start"/>
+        @if (!_isDrawerExpanded)
+        {
+            <MudText Typo="Typo.h6">
+                Badger Budgets
+            </MudText>
+        }
+    </MudAppBar>
+    <MudDrawer @bind-Open="_isDrawerExpanded" Elevation="3">
+        <MudDrawerHeader>
+            <MudText Typo="Typo.h6">Badger Budgets</MudText>
+        </MudDrawerHeader>
+        <MudDrawerContainer>
+            <SideMenu/>
+        </MudDrawerContainer>
     </MudDrawer>
-    <MudMainContent Style="">
+    <MudMainContent Class="mb-4">
         @Body
     </MudMainContent>
 </MudLayout>
+
+@code {
+    private bool _isDrawerExpanded = true;
+
+    private void ToggleDrawer()
+    {
+        _isDrawerExpanded = !_isDrawerExpanded;
+    }
+}

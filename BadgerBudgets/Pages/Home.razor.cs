@@ -15,6 +15,7 @@ public partial class Home : ComponentBase
     #region Injects
     [Inject] protected StatementService StatementService { get; set; }
     [Inject] protected ISnackbar SnackbarService { get; set; }
+    [Inject] protected NavigationManager NavManager { get; set; }
     #endregion
 
     #region Visualizations
@@ -91,6 +92,10 @@ public partial class Home : ComponentBase
         await base.OnInitializedAsync();
         await StatementService.LoadFromStorage();
 
+        // If we don't have a source, we need to add one! Redirect user
+        if (StatementService.SourceMaterials.Count == 0)
+            NavManager.NavigateTo("sources");
+        
         _items = StatementService.Items;
         selectedCategories = StatementService.Items.Select(x => x.Category.Value).Distinct().ToHashSet();
     }

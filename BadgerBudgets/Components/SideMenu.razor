@@ -1,25 +1,35 @@
-﻿<MudContainer Style="margin-top: 4px; margin-bottom: 4px;">
-    <MudText Align="Align.Center" Typo="Typo.h6">
-        Badger Budgets
-    </MudText>
-    <MudDivider/>
-</MudContainer>
+﻿@using BadgerBudgets.Services
+
 <MudNavMenu>
-    <MudNavLink Icon="@Icons.Material.Filled.Dashboard" Href="" Match="NavLinkMatch.All">Dashboard</MudNavLink>
+    @if (_hasSources)
+    {
+        <MudNavLink Icon="@Icons.Material.Filled.Dashboard" Href="" Match="NavLinkMatch.All">Dashboard</MudNavLink>
+    }
     <MudNavGroup Title="Sources" @bind-Expanded="_isExpanded">
         <MudNavLink Href="sources"
                     Icon="@Icons.Material.Filled.Add"
                     Match="NavLinkMatch.All">
             New Source
         </MudNavLink>
-        <MudNavLink Href="sources/manage"
-                    Icon="@Icons.Material.Filled.Edit"
-                    Match="NavLinkMatch.All">
-            Manage Sources
-        </MudNavLink>
+        @if (_hasSources)
+        {
+            <MudNavLink Href="sources/manage"
+                        Icon="@Icons.Material.Filled.Edit"
+                        Match="NavLinkMatch.All">
+                Manage Sources
+            </MudNavLink>
+        }
     </MudNavGroup>
 </MudNavMenu>
 
 @code {
     bool _isExpanded = true;
+    bool _hasSources;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        _hasSources = StatementService.SourceMaterials.Count > 0;
+    }
+
 }
