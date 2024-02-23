@@ -1,7 +1,7 @@
 ﻿@using BadgerBudgets.Services
 
 <MudNavMenu>
-    @if (_hasSources)
+    @if (HasStatementSources)
     {
         <MudNavLink Icon="@Icons.Material.Filled.Dashboard" Href="" Match="NavLinkMatch.All">Dashboard</MudNavLink>
     }
@@ -11,7 +11,7 @@
                     Match="NavLinkMatch.All">
             New Source
         </MudNavLink>
-        @if (_hasSources)
+        @if (HasStatementSources)
         {
             <MudNavLink Href="sources/manage"
                         Icon="@Icons.Material.Filled.Edit"
@@ -24,12 +24,7 @@
 
 @code {
     bool _isExpanded = true;
-    bool _hasSources;
 
-    protected override void OnInitialized()
-    {
-        base.OnInitialized();
-        _hasSources = StatementService.SourceMaterials.Count > 0;
-    }
-
+    [CascadingParameter] 
+    public bool HasStatementSources { get; set; }
 }

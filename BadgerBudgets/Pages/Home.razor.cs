@@ -17,13 +17,18 @@ public partial class Home : ComponentBase
     [Inject] protected ISnackbar SnackbarService { get; set; }
     [Inject] protected NavigationManager NavManager { get; set; }
     #endregion
+    
+    #region Parameters
+
+    [CascadingParameter] public bool HasStatementSources { get; set; }
+
+    #endregion
 
     #region Visualizations
     public bool ShowVisualizations { get; set; } = true;
-    private int _selectedCategoryIndex;
 
-    private ApexChart<StatementItem> _apexPieChart;
-    private ApexChart<StatementItem> _apexTimeChart;
+    private ApexChart<StatementItem>? _apexPieChart;
+    private ApexChart<StatementItem>? _apexTimeChart;
     
     private ApexChartOptions<StatementItem> _apexChartOptionsPie = new()
     {
@@ -86,18 +91,32 @@ public partial class Home : ComponentBase
     private void SetDragClass() => _dragClass = $"{DefaultDragClass} mud-border-primary";
     private void ClearDragClass() => _dragClass = DefaultDragClass;
     #endregion
+
+    private bool _showUploads;
+    private bool _showFilterArea;
     
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        await StatementService.LoadFromStorage();
 
-        // If we don't have a source, we need to add one! Redirect user
-        if (StatementService.SourceMaterials.Count == 0)
-            NavManager.NavigateTo("sources");
-        
         _items = StatementService.Items;
         selectedCategories = StatementService.Items.Select(x => x.Category.Value).Distinct().ToHashSet();
+    }
+
+    private void ToggleUploadArea()
+    {
+        _showUploads = !_showUploads;
+
+        if (_showUploads)
+            _showFilterArea = false;
+    }
+
+    private void ToggleFilterArea()
+    {
+        _showFilterArea = !_showFilterArea;
+
+        if (_showFilterArea)
+            _showUploads = false;
     }
     
     private IQueryable<StatementItem> FilterQuery

@@ -6,49 +6,118 @@
 <PageTitle>Dashboard</PageTitle>
 
 <MudContainer>
-    <MudItem xs="12">
-        <MudButton Color="Color.Dark"
-                   IconColor="Color.Tertiary"
-                   StartIcon="@Icons.Material.Filled.Clear"
-                   Variant="Variant.Filled"
-                   OnClick="@(() => { StatementService.Items.Clear(); StateHasChanged(); })">
-            Clear Statements
-        </MudButton>
-    </MudItem>
-    <MudGrid Spacing="3" Class="pa-4">
-        @foreach (var source in StatementService.SourceMaterials)
-        {
-            <MudItem>
-                <MudFileUpload T="IBrowserFile"
-                               FilesChanged="@(file => OnFileUpload(source.Key, file))"
-                               Accept=".csv"
-                               Hidden="@false"
-                               InputClass="absolute mud-width-full mud-height-full overflow-hidden z-20"
-                               InputStyle="opacity:0">
-                    <ButtonTemplate>
-                        <MudPaper Height="100%" Width="100%"
-                                  Outlined
-                                  Class="@_dragClass"
-                                  @ondragenter="@SetDragClass"
-                                  @ondragleave="@ClearDragClass"
-                                  @ondragend="@ClearDragClass">
-                            <MudText Typo="Typo.h6">
-                                Drag and drop files from @source.Key into here
-                            </MudText>
+    @if (StatementService.Items.Count > 0)
+    {
+        <MudDrawer Anchor="Anchor.Top" Elevation="3" Variant="DrawerVariant.Temporary" @bind-Open="@_showFilterArea"
+                   Height="100px">
+            <MudGrid Spacing="3">
+                <MudItem xs="12">
+                    <MudToolBar>
+                        <MudTooltip Text="Close Filter Area">
+                            <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                           OnClick="@ToggleFilterArea"/>
+                        </MudTooltip>
+                        
+                        <MudDateRangePicker Label="Filter by Date Range"
+                                            MinDate="@StatementService.Items.Min(x => x.Date.ToDateTime(TimeOnly.Parse("12:00 AM")))"
+                                            MaxDate="@StatementService.Items.Max(x => x.Date.ToDateTime(TimeOnly.Parse("11:59 PM")))"
+                                            @bind-DateRange="@_filterDateRange"/>
 
-                            <MudButton HtmlTag="label"
-                                       for="@context.Id"
-                                       Variant="Variant.Filled"
-                                       Color="Color.Primary"
-                                       Style="display: none">
-                                Upload
+                        <MudTooltip Text="View last 3 months">
+                            <MudButton IconClass="@Icons.Material.Filled.CalendarViewMonth"
+                                       Color="Color.Tertiary"
+                                       OnClick="@(() => SetDateRangeToLastThreeMonths())">
+                                Last 3
                             </MudButton>
-                        </MudPaper>
-                    </ButtonTemplate>
-                </MudFileUpload>
+                        </MudTooltip>
+
+                        <MudTooltip Text="View last month">
+                            <MudIconButton Icon="@Icons.Material.Filled.CalendarViewMonth"
+                                           Color="Color.Secondary"
+                                           OnClick="@(() => SetDateRangeToLastMonth())"/>
+                        </MudTooltip>
+
+                        <MudTooltip Text="View current month">
+                            <MudIconButton Icon="@Icons.Material.Filled.CalendarViewMonth"
+                                           Color="Color.Primary"
+                                           OnClick="@(() => SetDateRangeToCurrentMonth())"/>
+                        </MudTooltip>
+                    </MudToolBar>
+                </MudItem>
+            </MudGrid>
+        </MudDrawer>
+    }
+    
+    <MudDrawer Anchor="Anchor.Top" Elevation="3" Variant="DrawerVariant.Temporary" @bind-Open="@_showUploads" Height="125px">
+        <MudGrid Spacing="1" Class="pa-4">
+            <MudItem>
+                <MudIconButton Icon="@Icons.Material.Filled.Close"
+                               OnClick="@ToggleUploadArea"/>
             </MudItem>
-        }
-    </MudGrid>
+            @foreach (var source in StatementService.SourceMaterials)
+            {
+                <MudItem>
+                    <MudFileUpload T="IBrowserFile"
+                                   FilesChanged="@(file => OnFileUpload(source.Key, file))"
+                                   Accept=".csv"
+                                   Hidden="@false"
+                                   InputClass="absolute mud-width-full mud-height-full overflow-hidden z-20"
+                                   InputStyle="opacity:0">
+                        <ButtonTemplate>
+                            <MudPaper Height="100%" Width="100%"
+                                      Outlined
+                                      Class="@_dragClass"
+                                      @ondragenter="@SetDragClass"
+                                      @ondragleave="@ClearDragClass"
+                                      @ondragend="@ClearDragClass">
+                                <MudText Typo="Typo.h6">
+                                    Upload @source.Key file(s)
+                                </MudText>
+
+                                <MudButton HtmlTag="label"
+                                           for="@context.Id"
+                                           Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           Style="display: none">
+                                    Upload
+                                </MudButton>
+                            </MudPaper>
+                        </ButtonTemplate>
+                    </MudFileUpload>
+                </MudItem>
+            }
+        </MudGrid>
+    </MudDrawer>
+    
+    <MudItem xs="12">
+        <MudToolBar>
+            <MudPaper Elevation="2">
+                <MudTooltip Text="Toggle Uploads Panel">
+                    <MudIconButton Icon="@Icons.Material.Filled.FileUpload"
+                                   Color="Color.Primary"
+                                   OnClick="@(()=>ToggleUploadArea())"/>
+                </MudTooltip>
+                
+                @if (StatementService.Items.Count > 0)
+                {
+                    <MudTooltip Text="Toggle Filter Panel">
+                        <MudIconButton Icon="@Icons.Material.Filled.Search"
+                                       Color="Color.Info"
+                                       OnClick="@(()=>ToggleFilterArea())"/>
+                    </MudTooltip>
+                    
+                    <MudTooltip Text="Delete all statements">
+                        <MudIconButton Icon="@Icons.Material.Filled.Recycling"
+                                       OnClick="@(() => { StatementService.Items.Clear(); StateHasChanged(); })"
+                                       Color="Color.Tertiary"/>
+                    </MudTooltip>
+                }
+                
+            </MudPaper>
+        </MudToolBar>
+        
+    </MudItem>
+    
 </MudContainer>
 
 @if (StatementService.Items.Count > 0)
@@ -57,35 +126,6 @@
     
     <MudContainer>
         <MudGrid Spacing="3" Class="pa-4">
-            <MudItem xs="12">
-                <MudToolBar>
-                    <MudDateRangePicker Label="Filter by Date Range"
-                                        MinDate="@StatementService.Items.Min(x=>x.Date.ToDateTime(TimeOnly.Parse("12:00 AM")))"
-                                        MaxDate="@StatementService.Items.Max(x=>x.Date.ToDateTime(TimeOnly.Parse("11:59 PM")))"
-                                        @bind-DateRange="@_filterDateRange"/>
-                    
-                    <MudTooltip Text="View last 3 months">
-                        <MudButton IconClass="@Icons.Material.Filled.CalendarViewMonth"
-                                   Color="Color.Tertiary"
-                                   OnClick="@(()=>SetDateRangeToLastThreeMonths())">
-                            Last 3
-                        </MudButton>
-                    </MudTooltip>
-                    
-                    <MudTooltip Text="View last month">
-                        <MudIconButton Icon="@Icons.Material.Filled.CalendarViewMonth"
-                                       Color="Color.Secondary"
-                                       OnClick="@(()=>SetDateRangeToLastMonth())"/>
-                    </MudTooltip>
-                    
-                    <MudTooltip Text="View current month">
-                        <MudIconButton Icon="@Icons.Material.Filled.CalendarViewMonth"
-                                       Color="Color.Primary"
-                                       OnClick="@(()=>SetDateRangeToCurrentMonth())"/>
-                    </MudTooltip>
-                </MudToolBar>
-            </MudItem>
-            
             <MudItem xs="12">
                 <MudToolBar>
                     <MudSelect T="string" MultiSelection="true" SelectAll="true" 
